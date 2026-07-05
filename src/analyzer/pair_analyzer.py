@@ -1,4 +1,3 @@
-# Pair 분석
 from collections import Counter
 from itertools import combinations
 
@@ -22,11 +21,9 @@ class PairAnalyzer:
         result = []
 
         for row in rows:
-            draw_no = row[0]
-            numbers = list(row[1:])
             result.append({
-                "draw_no": draw_no,
-                "numbers": numbers
+                "draw_no": row[0],
+                "numbers": list(row[1:])
             })
 
         return result
@@ -34,6 +31,7 @@ class PairAnalyzer:
     def analyze_pair_frequency(self):
         draws = self.get_all_draw_numbers()
         pair_counter = Counter()
+        total_draws = len(draws)
 
         for draw in draws:
             numbers = sorted(draw["numbers"])
@@ -41,7 +39,16 @@ class PairAnalyzer:
             for pair in combinations(numbers, 2):
                 pair_counter[pair] += 1
 
-        return pair_counter.most_common()
+        result = []
+
+        for pair, count in pair_counter.most_common():
+            result.append({
+                "pair": pair,
+                "count": count,
+                "rate": round((count / total_draws) * 100, 2) if total_draws > 0 else 0
+            })
+
+        return result
 
     def get_top_pairs(self, top_count=20):
         return self.analyze_pair_frequency()[:top_count]
@@ -51,14 +58,18 @@ class PairAnalyzer:
 
         result = []
 
-        for pair, count in pair_frequency:
+        for item in pair_frequency:
+            pair = item["pair"]
+
             if target_number in pair:
                 other_number = pair[0] if pair[1] == target_number else pair[1]
 
                 result.append({
                     "target_number": target_number,
                     "pair_number": other_number,
-                    "count": count
+                    "pair": pair,
+                    "count": item["count"],
+                    "rate": item["rate"]
                 })
 
         return result[:top_count]
@@ -67,8 +78,9 @@ class PairAnalyzer:
         top_pairs = self.get_top_pairs(top_count)
 
         print(f"\n동시 출현 번호쌍 TOP {top_count}")
-        for pair, count in top_pairs:
-            print(f"{pair[0]}번 + {pair[1]}번 - {count}회")
+        for item in top_pairs:
+            pair = item["pair"]
+            print(f"{pair[0]}번 + {pair[1]}번 - {item['count']}회 ({item['rate']}%)")
 
     def print_pairs_with_number(self, target_number, top_count=10):
         pairs = self.get_pairs_with_number(target_number, top_count)
@@ -77,5 +89,5 @@ class PairAnalyzer:
         for item in pairs:
             print(
                 f"{target_number}번 + {item['pair_number']}번 - "
-                f"{item['count']}회"
+                f"{item['count']}회 ({item['rate']}%)"
             )

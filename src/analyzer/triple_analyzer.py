@@ -1,4 +1,3 @@
-# Triple 분석
 from collections import Counter
 from itertools import combinations
 
@@ -32,6 +31,7 @@ class TripleAnalyzer:
     def analyze_triple_frequency(self):
         draws = self.get_all_draw_numbers()
         triple_counter = Counter()
+        total_draws = len(draws)
 
         for draw in draws:
             numbers = sorted(draw["numbers"])
@@ -39,7 +39,16 @@ class TripleAnalyzer:
             for triple in combinations(numbers, 3):
                 triple_counter[triple] += 1
 
-        return triple_counter.most_common()
+        result = []
+
+        for triple, count in triple_counter.most_common():
+            result.append({
+                "triple": triple,
+                "count": count,
+                "rate": round((count / total_draws) * 100, 2) if total_draws > 0 else 0
+            })
+
+        return result
 
     def get_top_triples(self, top_count=20):
         return self.analyze_triple_frequency()[:top_count]
@@ -48,5 +57,11 @@ class TripleAnalyzer:
         top_triples = self.get_top_triples(top_count)
 
         print(f"\n3개 번호 동시 출현 TOP {top_count}")
-        for triple, count in top_triples:
-            print(f"{triple[0]}번 + {triple[1]}번 + {triple[2]}번 - {count}회")
+        for item in top_triples:
+            triple = item["triple"]
+            print(
+                f"{triple[0]}번 + "
+                f"{triple[1]}번 + "
+                f"{triple[2]}번 - "
+                f"{item['count']}회 ({item['rate']}%)"
+            )

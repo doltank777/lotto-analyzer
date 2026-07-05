@@ -61,19 +61,25 @@ def main():
         )
 
     print("\nPair TOP 20")
-    for pair, count in pair_analyzer.get_top_pairs(20):
-        print(f"{pair[0]}번 + {pair[1]}번 - {count}회")
+    for item in pair_analyzer.get_top_pairs(20):
+        pair = item["pair"]
+        print(f"{pair[0]}번 + {pair[1]}번 - {item['count']}회 ({item['rate']}%)")
 
     print("\n34번과 같이 많이 나온 번호 TOP 10")
     for item in pair_analyzer.get_pairs_with_number(34, 10):
-        print(f"34번 + {item['pair_number']}번 - {item['count']}회")
+        print(
+            f"34번 + {item['pair_number']}번 - "
+            f"{item['count']}회 ({item['rate']}%)"
+        )
 
     print("\nTriple TOP 20")
-    for triple, count in triple_analyzer.get_top_triples(20):
+    for item in triple_analyzer.get_top_triples(20):
+        triple = item["triple"]
         print(
             f"{triple[0]}번 + "
             f"{triple[1]}번 + "
-            f"{triple[2]}번 - {count}회"
+            f"{triple[2]}번 - "
+            f"{item['count']}회 ({item['rate']}%)"
         )
 
     print("\n최근 30회 패턴 요약")
