@@ -61,12 +61,12 @@ def main():
         )
 
     print("\nPair TOP 20")
-    for item in pair_analyzer.get_top_pairs(20):
-        print(f"{item['pair']} - {item['count']}회 ({item['rate']}%)")
+    for pair, count, rate in pair_analyzer.get_top_pairs(20):
+        print(f"{pair} - {count}회 ({rate}%)")
 
     print("\n34번과 같이 많이 나온 번호 TOP 10")
-    for item in pair_analyzer.get_numbers_with_target(34, 10):
-        print(f"{item['number']}번 - {item['count']}회")
+    for number, count in pair_analyzer.get_numbers_with_target(34, 10):
+        print(f"{number}번 - {count}회")
 
     print("\nTriple TOP 20")
     for item in triple_analyzer.get_top_triples(20):
