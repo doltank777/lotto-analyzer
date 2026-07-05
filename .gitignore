@@ -31,3 +31,6 @@ dist/
 
 # Windows
 Thumbs.db
+
+# excel
+*.xlsx
