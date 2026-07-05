@@ -3,6 +3,7 @@ from src.collector.excel_collector import ExcelCollector
 from src.analyzer.lotto_analyzer import LottoAnalyzer
 from src.analyzer.trend_analyzer import TrendAnalyzer
 from src.analyzer.pair_analyzer import PairAnalyzer
+from src.analyzer.triple_analyzer import TripleAnalyzer
 
 
 def main():
@@ -16,11 +17,9 @@ def main():
     print(f"엑셀 당첨번호 저장 완료: {saved_count}건")
 
     analyzer = LottoAnalyzer()
-
     analyzer.print_top_bottom_frequency()
 
     recent_ranges = [10, 30, 50, 100]
-
     for recent_count in recent_ranges:
         analyzer.print_recent_frequency(recent_count)
 
@@ -32,6 +31,9 @@ def main():
     pair_analyzer.print_pairs_with_number(3)
     pair_analyzer.print_pairs_with_number(27)
     pair_analyzer.print_pairs_with_number(45)
+
+    triple_analyzer = TripleAnalyzer()
+    triple_analyzer.print_top_triples()
 
 
 if __name__ == "__main__":
