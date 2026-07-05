@@ -40,7 +40,7 @@ class ExcelCollector:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 draw_no,
-                None,
+                '',
                 number1,
                 number2,
                 number3,
