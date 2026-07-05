@@ -1,6 +1,7 @@
 from src.db.database import init_db
 from src.collector.excel_collector import ExcelCollector
 from src.analyzer.lotto_analyzer import LottoAnalyzer
+from src.analyzer.trend_analyzer import TrendAnalyzer
 
 
 def main():
@@ -21,6 +22,9 @@ def main():
 
     for recent_count in recent_ranges:
         analyzer.print_recent_frequency(recent_count)
+
+    trend_analyzer = TrendAnalyzer()
+    trend_analyzer.print_trend_analysis()
 
 
 if __name__ == "__main__":
