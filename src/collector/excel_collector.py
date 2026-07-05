@@ -1,63 +1,58 @@
-from openpyxl import load_workbook
-
-from src.db.database import get_connection
-
-
-def save_lotto_number(lotto_data: dict):
-    conn = get_connection()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        INSERT OR REPLACE INTO lotto_winning_numbers (
-            draw_no,
-            draw_date,
-            number1,
-            number2,
-            number3,
-            number4,
-            number5,
-            number6,
-            bonus_number
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, (
-        lotto_data["draw_no"],
-        lotto_data["draw_date"],
-        lotto_data["number1"],
-        lotto_data["number2"],
-        lotto_data["number3"],
-        lotto_data["number4"],
-        lotto_data["number5"],
-        lotto_data["number6"],
-        lotto_data["bonus_number"],
-    ))
-
-    conn.commit()
-    conn.close()
+import pandas as pd
+import sqlite3
 
 
-def collect_from_excel(file_path: str):
-    workbook = load_workbook(file_path, data_only=True)
-    sheet = workbook.active
+class ExcelCollector:
+    def __init__(self, excel_path="lotto_numbers.xlsx", db_path="database/lotto.db"):
+        self.excel_path = excel_path
+        self.db_path = db_path
 
-    saved_count = 0
+    def import_excel(self):
+        df = pd.read_excel(self.excel_path)
 
-    for row in sheet.iter_rows(min_row=2, values_only=True):
-        if row[1] is None:
-            continue
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
 
-        lotto_data = {
-            "draw_no": int(row[1]),
-            "draw_date": "",
-            "number1": int(row[2]),
-            "number2": int(row[3]),
-            "number3": int(row[4]),
-            "number4": int(row[5]),
-            "number5": int(row[6]),
-            "number6": int(row[7]),
-            "bonus_number": int(row[8]),
-        }
+        saved_count = 0
 
-        save_lotto_number(lotto_data)
-        saved_count += 1
+        for _, row in df.iterrows():
+            draw_no = int(row["회차"])
+            draw_date = str(row["추첨일"])
+            number1 = int(row["번호1"])
+            number2 = int(row["번호2"])
+            number3 = int(row["번호3"])
+            number4 = int(row["번호4"])
+            number5 = int(row["번호5"])
+            number6 = int(row["번호6"])
+            bonus_number = int(row["보너스"])
 
-    print(f"엑셀 당첨번호 저장 완료: {saved_count}건")
+            cursor.execute("""
+                INSERT OR REPLACE INTO lotto_winning_numbers (
+                    draw_no,
+                    draw_date,
+                    number1,
+                    number2,
+                    number3,
+                    number4,
+                    number5,
+                    number6,
+                    bonus_number
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                draw_no,
+                draw_date,
+                number1,
+                number2,
+                number3,
+                number4,
+                number5,
+                number6,
+                bonus_number
+            ))
+
+            saved_count += 1
+
+        conn.commit()
+        conn.close()
+
+        return saved_count
