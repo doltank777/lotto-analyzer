@@ -1,6 +1,6 @@
 from src.db.database import init_db
-from src.collector.excel_collector import collect_from_excel
-from src.analyzer.lotto_analyzer import print_frequency_summary
+from src.collector.excel_collector import ExcelCollector
+from src.analyzer.lotto_analyzer import LottoAnalyzer
 
 
 def main():
@@ -9,11 +9,18 @@ def main():
     init_db()
     print("DB 초기화 완료")
 
-    collect_from_excel("lotto_numbers.xlsx")
+    collector = ExcelCollector()
+    saved_count = collector.import_excel()
+    print(f"엑셀 당첨번호 저장 완료: {saved_count}건")
 
-    print_frequency_summary()
+    analyzer = LottoAnalyzer()
 
-    print("\n작업 완료")
+    analyzer.print_top_bottom_frequency()
+
+    recent_ranges = [10, 30, 50, 100]
+
+    for recent_count in recent_ranges:
+        analyzer.print_recent_frequency(recent_count)
 
 
 if __name__ == "__main__":
