@@ -1,5 +1,6 @@
 from src.db.database import init_db
 from src.collector.excel_collector import collect_from_excel
+from src.analyzer.lotto_analyzer import print_frequency_summary
 
 
 def main():
@@ -10,7 +11,9 @@ def main():
 
     collect_from_excel("lotto_numbers.xlsx")
 
-    print("작업 완료")
+    print_frequency_summary()
+
+    print("\n작업 완료")
 
 
 if __name__ == "__main__":
