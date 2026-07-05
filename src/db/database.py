@@ -30,3 +30,15 @@ def init_db():
 
     conn.commit()
     conn.close()
+
+def reset_database():
+    conn = sqlite3.connect(DB_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("DROP TABLE IF EXISTS lotto_winning_numbers")
+
+    conn.commit()
+    conn.close()
+
+    init_db()
+    
