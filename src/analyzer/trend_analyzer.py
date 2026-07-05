@@ -1,4 +1,5 @@
-# 상승/하락 추세import sqlite3
+# 상승/하락 추세
+import sqlite3
 from collections import Counter
 
 
