@@ -18,8 +18,9 @@ def main():
 
     init_db()
 
-    collector = ExcelCollector()
-    collector.import_excel_to_db("lotto_numbers.xlsx")
+    collector = ExcelCollector("lotto_numbers.xlsx")
+    saved_count = collector.import_excel()
+    print(f"엑셀 당첨번호 저장 완료: {saved_count}건")
 
     frequency_analyzer = FrequencyAnalyzer()
     trend_analyzer = TrendAnalyzer()
