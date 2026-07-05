@@ -1,16 +1,11 @@
-import sqlite3
 from collections import Counter
+
+from src.db.database import get_connection
 
 
 class LottoAnalyzer:
-    def __init__(self, db_path="database/lotto.db"):
-        self.db_path = db_path
-
-    def _connect(self):
-        return sqlite3.connect(self.db_path)
-
     def get_all_numbers(self, limit=None):
-        conn = self._connect()
+        conn = get_connection()
         cursor = conn.cursor()
 
         query = """
@@ -20,9 +15,11 @@ class LottoAnalyzer:
         """
 
         if limit:
-            query += f" LIMIT {limit}"
+            query += " LIMIT ?"
+            cursor.execute(query, (limit,))
+        else:
+            cursor.execute(query)
 
-        cursor.execute(query)
         rows = cursor.fetchall()
         conn.close()
 
@@ -35,7 +32,6 @@ class LottoAnalyzer:
     def analyze_frequency(self):
         numbers = self.get_all_numbers()
         counter = Counter(numbers)
-
         return counter.most_common()
 
     def analyze_recent_frequency(self, recent_count):
@@ -50,8 +46,7 @@ class LottoAnalyzer:
                 "count": counter.get(number, 0)
             })
 
-        result.sort(key=lambda x: x["count"], reverse=True)
-
+        result.sort(key=lambda item: item["count"], reverse=True)
         return result
 
     def print_top_bottom_frequency(self, top_count=10):
@@ -73,5 +68,5 @@ class LottoAnalyzer:
             print(f"{item['number']}번 - {item['count']}회")
 
         print(f"\n최근 {recent_count}회 미출현/저출현 번호 TOP {top_count}")
-        for item in sorted(result, key=lambda x: x["count"])[:top_count]:
+        for item in sorted(result, key=lambda item: item["count"])[:top_count]:
             print(f"{item['number']}번 - {item['count']}회")
