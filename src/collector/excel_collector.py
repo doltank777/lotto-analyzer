@@ -17,7 +17,6 @@ class ExcelCollector:
 
         for _, row in df.iterrows():
             draw_no = int(str(row.iloc[1]).replace(",", ""))
-
             number1 = int(row.iloc[2])
             number2 = int(row.iloc[3])
             number3 = int(row.iloc[4])
@@ -29,7 +28,6 @@ class ExcelCollector:
             cursor.execute("""
                 INSERT OR REPLACE INTO lotto_winning_numbers (
                     draw_no,
-                    draw_date,
                     number1,
                     number2,
                     number3,
@@ -37,10 +35,9 @@ class ExcelCollector:
                     number5,
                     number6,
                     bonus_number
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 draw_no,
-                '',
                 number1,
                 number2,
                 number3,

@@ -17,8 +17,7 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS lotto_winning_numbers (
-            draw_no INTEGER PRIMARY KEY,
-            draw_date TEXT NOT NULL,
+            draw_no INTEGER PRIMARY KEY,            
             number1 INTEGER NOT NULL,
             number2 INTEGER NOT NULL,
             number3 INTEGER NOT NULL,
