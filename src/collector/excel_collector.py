@@ -16,15 +16,15 @@ class ExcelCollector:
         saved_count = 0
 
         for _, row in df.iterrows():
-            draw_no = int(row["회차"])
-            draw_date = str(row["추첨일"])
-            number1 = int(row["번호1"])
-            number2 = int(row["번호2"])
-            number3 = int(row["번호3"])
-            number4 = int(row["번호4"])
-            number5 = int(row["번호5"])
-            number6 = int(row["번호6"])
-            bonus_number = int(row["보너스"])
+            draw_no = int(str(row.iloc[1]).replace(",", ""))
+
+            number1 = int(row.iloc[2])
+            number2 = int(row.iloc[3])
+            number3 = int(row.iloc[4])
+            number4 = int(row.iloc[5])
+            number5 = int(row.iloc[6])
+            number6 = int(row.iloc[7])
+            bonus_number = int(row.iloc[8])
 
             cursor.execute("""
                 INSERT OR REPLACE INTO lotto_winning_numbers (
@@ -40,7 +40,7 @@ class ExcelCollector:
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (
                 draw_no,
-                draw_date,
+                None,
                 number1,
                 number2,
                 number3,
