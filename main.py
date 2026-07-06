@@ -6,7 +6,7 @@ from src.analyzer.pair_analyzer import PairAnalyzer
 from src.analyzer.triple_analyzer import TripleAnalyzer
 from src.analyzer.pattern_analyzer import PatternAnalyzer
 from src.analyzer.missing_number_analyzer import MissingNumberAnalyzer
-
+from src.analyzer.recommendation_engine import RecommendationEngine
 
 
 def print_distribution(title, distribution):
@@ -30,6 +30,7 @@ def main():
     triple_analyzer = TripleAnalyzer()
     pattern_analyzer = PatternAnalyzer()
     missing_number_analyzer = MissingNumberAnalyzer()
+    recommendation_engine = RecommendationEngine()
 
     print("\n가장 많이 나온 번호 TOP 10")
     for item in frequency_analyzer.get_most_common_numbers(10):
@@ -92,6 +93,18 @@ def main():
             f"{item['missing_draws']}회 미출현 "
             f"(마지막 출현: {item['last_seen_draw_no']}회)"
         )
+        
+    print("\n추천 점수 TOP 15")
+    for item in recommendation_engine.calculate_number_scores()[:15]:
+        print(
+            f"{item['number']}번 - "
+            f"총점 {item['total_score']} | "
+            f"전체빈도 {item['frequency_score']} | "
+            f"최근30회 {item['recent_30_score']} | "
+            f"최근100회 {item['recent_100_score']} | "
+            f"상승 {item['rising_score']} | "
+            f"장기미출현 {item['missing_score']}"
+        )        
         
     print("\n최근 30회 패턴 요약")
     recent_patterns = pattern_analyzer.get_recent_pattern_summary(30)
