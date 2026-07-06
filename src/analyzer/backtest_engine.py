@@ -225,7 +225,8 @@ class BacktestEngine:
             "number_hit_rate": 0,
             "best_total_match_count": 0,
             "best_average_match_count": 0,
-            "best_max_match_count": 0
+            "best_max_match_count": 0,
+            "score_range_stats": {}
         }
 
         for backtest in backtest_results:
@@ -237,6 +238,27 @@ class BacktestEngine:
                 summary["best_max_match_count"] = best_result["match_count"]
 
             for result in backtest["results"]:
+                score_range = int(result["score"])
+
+                if score_range not in summary["score_range_stats"]:
+                    summary["score_range_stats"][score_range] = {
+                        "count": 0,
+                        "total_match_count": 0,
+                        "average_match_count": 0,
+                        "max_match_count": 0,
+                        "three_or_more_count": 0
+                    }
+
+                score_stat = summary["score_range_stats"][score_range]
+                score_stat["count"] += 1
+                score_stat["total_match_count"] += result["match_count"]
+
+                if result["match_count"] > score_stat["max_match_count"]:
+                    score_stat["max_match_count"] = result["match_count"]
+
+                if result["match_count"] >= 3:
+                    score_stat["three_or_more_count"] += 1
+                    
                 summary["total_recommendation_count"] += 1
                 summary["total_match_count"] += result["match_count"]
 
@@ -266,5 +288,19 @@ class BacktestEngine:
                 summary["best_total_match_count"] / summary["test_count"],
                 2
             )
+            
+        for score_range, stat in summary["score_range_stats"].items():
+            if stat["count"] > 0:
+                stat["average_match_count"] = round(
+                    stat["total_match_count"] / stat["count"],
+                    2
+                )
 
+        summary["score_range_stats"] = dict(
+            sorted(
+                summary["score_range_stats"].items(),
+                key=lambda x: x[0],
+                reverse=True
+            )
+        )
         return summary
