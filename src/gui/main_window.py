@@ -3,6 +3,7 @@ from tkinter import messagebox, scrolledtext, ttk
 from datetime import datetime
 
 from src.app.recommendation_service import RecommendationService
+from src.app.draw_search_service import DrawSearchService
 
 
 class MainWindow:
@@ -28,6 +29,9 @@ class MainWindow:
         self.recommendation_service = RecommendationService()
 
         self.create_widgets()
+        
+        self.draw_search_service = DrawSearchService()
+        
 
     def create_widgets(self):
         self.create_styles()
@@ -259,7 +263,7 @@ class MainWindow:
         search_button = ttk.Button(
             search_frame,
             text="조회",
-            command=self.show_draw_search_ready_message
+            command=self.search_draw_number
         )
         search_button.pack(side="left", padx=5)
 
@@ -275,8 +279,7 @@ class MainWindow:
 
         self.draw_search_text.insert(
             tk.END,
-            "회차조회 탭 준비 완료\n\n"
-            "다음 단계에서 입력한 회차의 당첨번호 조회 기능을 연결합니다.\n"
+            "회차조회 탭 준비 완료\n\n"            
         )
 
     def create_log_tab(self):
@@ -361,13 +364,67 @@ class MainWindow:
                 f"추천번호 생성 중 오류가 발생했습니다.\n\n{e}"
             )
 
-    def show_draw_search_ready_message(self):
-        messagebox.showinfo(
-            "안내",
-            "회차조회 기능은 다음 단계에서 연결합니다."
-        )
-        self.add_log("회차조회 버튼 클릭")
-        self.set_status("회차조회 기능 준비 중")
+    def search_draw_number(self):
+        try:
+            draw_no_text = self.draw_no_entry.get().strip()
+
+            if not draw_no_text:
+                messagebox.showwarning("입력 오류", "조회할 회차를 입력해주세요.")
+                return
+
+            if not draw_no_text.isdigit():
+                messagebox.showwarning("입력 오류", "회차는 숫자만 입력해주세요.")
+                return
+
+            draw_no = int(draw_no_text)
+
+            self.set_status(f"{draw_no}회 당첨번호 조회 중...")
+            self.add_log(f"{draw_no}회 당첨번호 조회 시작")
+
+            result = self.draw_search_service.get_draw_by_no(draw_no)
+
+            self.draw_search_text.delete("1.0", tk.END)
+
+            if result is None:
+                self.draw_search_text.insert(
+                    tk.END,
+                    f"{draw_no}회 당첨번호 데이터가 없습니다.\n"
+                )
+                self.set_status("회차조회 결과 없음")
+                self.add_log(f"{draw_no}회 당첨번호 조회 결과 없음")
+                return
+
+            self.draw_search_text.insert(tk.END, "=" * 70 + "\n")
+            self.draw_search_text.insert(tk.END, f"                      {result['draw_no']}회 당첨번호\n")
+            self.draw_search_text.insert(tk.END, "=" * 70 + "\n\n")
+
+            self.draw_search_text.insert(
+                tk.END,
+                f"당첨번호 : {result['numbers']}\n"
+            )
+
+            self.draw_search_text.insert(
+                tk.END,
+                f"보너스번호 : {result['bonus_number']}\n"
+            )
+
+            self.draw_search_text.insert(tk.END, "\n" + "-" * 70 + "\n")
+            self.draw_search_text.insert(
+                tk.END,
+                "※ 저장된 과거 당첨번호 데이터를 기준으로 조회합니다.\n"
+            )
+
+            self.set_status(f"{draw_no}회 당첨번호 조회 완료")
+            self.add_log(f"{draw_no}회 당첨번호 조회 완료")
+
+        except Exception as e:
+            self.set_status("회차조회 오류 발생")
+            self.add_log(f"회차조회 오류: {e}")
+
+            messagebox.showerror(
+                "오류",
+                f"회차조회 중 오류가 발생했습니다.\n\n{e}"
+            )
 
     def add_log(self, message):
         if hasattr(self, "log_text"):
