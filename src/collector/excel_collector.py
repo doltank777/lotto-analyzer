@@ -1,14 +1,26 @@
-import pandas as pd
+import sys
 from pathlib import Path
+
+import pandas as pd
 
 from src.db.database import get_connection
 
 
 class ExcelCollector:
     def __init__(self, excel_path="lotto_numbers.xlsx"):
-        self.excel_path = Path(excel_path)
+        if getattr(sys, "frozen", False):
+            base_dir = Path(sys.executable).parent
+        else:
+            base_dir = Path(__file__).resolve().parents[2]
+
+        self.excel_path = base_dir / excel_path
 
     def import_excel(self):
+        if not self.excel_path.exists():
+            raise FileNotFoundError(
+                f"엑셀 파일을 찾을 수 없습니다.\n{self.excel_path}"
+            )
+
         df = pd.read_excel(self.excel_path)
 
         conn = get_connection()

@@ -1,7 +1,13 @@
+import sys
 import sqlite3
 from pathlib import Path
 
-BASE_DIR = Path(__file__).resolve().parents[2]
+
+if getattr(sys, "frozen", False):
+    BASE_DIR = Path(sys.executable).parent
+else:
+    BASE_DIR = Path(__file__).resolve().parents[2]
+
 DB_DIR = BASE_DIR / "database"
 DB_PATH = DB_DIR / "lotto.db"
 
@@ -17,7 +23,7 @@ def init_db():
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS lotto_winning_numbers (
-            draw_no INTEGER PRIMARY KEY,            
+            draw_no INTEGER PRIMARY KEY,
             number1 INTEGER NOT NULL,
             number2 INTEGER NOT NULL,
             number3 INTEGER NOT NULL,
@@ -31,7 +37,10 @@ def init_db():
     conn.commit()
     conn.close()
 
+
 def reset_database():
+    DB_DIR.mkdir(exist_ok=True)
+
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
 
@@ -41,4 +50,3 @@ def reset_database():
     conn.close()
 
     init_db()
-    
