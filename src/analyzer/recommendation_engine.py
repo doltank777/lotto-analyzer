@@ -50,7 +50,21 @@ class RecommendationEngine:
 
         return sorted(result, key=lambda x: x["total_score"], reverse=True)
 
-    def generate_recommendations(self, set_count=10, candidate_pool_size=30, max_attempts=5000):
+    def generate_final_recommendations(self):
+        return self.generate_recommendations(
+            set_count=5,
+            candidate_pool_size=35,
+            max_attempts=10000,
+            max_overlap_count=3
+        )
+
+    def generate_recommendations(
+        self,
+        set_count=10,
+        candidate_pool_size=30,
+        max_attempts=5000,
+        max_overlap_count=None
+    ):
         number_scores = self.calculate_number_scores()
         candidate_numbers = [
             item["number"]
@@ -73,6 +87,10 @@ class RecommendationEngine:
             if not self.is_valid_recommendation(numbers):
                 continue
 
+            if max_overlap_count is not None:
+                if self.has_too_much_overlap(numbers, recommendations, max_overlap_count):
+                    continue
+
             score_result = self.calculate_combination_score(numbers)
 
             recommendations.append(score_result)
@@ -83,6 +101,18 @@ class RecommendationEngine:
             key=lambda x: x["total_score"],
             reverse=True
         )
+
+    def has_too_much_overlap(self, numbers, recommendations, max_overlap_count):
+        current_set = set(numbers)
+
+        for item in recommendations:
+            existing_set = set(item["numbers"])
+            overlap_count = len(current_set & existing_set)
+
+            if overlap_count > max_overlap_count:
+                return True
+
+        return False
 
     def is_valid_recommendation(self, numbers):
         pattern = self.pattern_analyzer.analyze_single_draw_pattern(numbers)

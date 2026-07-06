@@ -107,8 +107,8 @@ def main():
             f"장기미출현 {item['missing_score']}"
         )        
 
-    print("\n추천번호 10세트")
-    recommendations = recommendation_engine.generate_recommendations(10)
+    print("\n최종 추천번호 5세트")
+    recommendations = recommendation_engine.generate_final_recommendations()
 
     for index, item in enumerate(recommendations, start=1):
         pattern = item["pattern"]
