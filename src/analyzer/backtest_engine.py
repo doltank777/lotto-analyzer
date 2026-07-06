@@ -131,7 +131,62 @@ class BacktestEngine:
                 })
 
         return all_results
+    
+    def run_recent_final_recommendation_backtests(self, test_count=10):
+        draws = self.get_all_draws()
 
+        if len(draws) < 2:
+            return []
+
+        recent_draws = draws[-test_count:]
+        all_results = []
+
+        for draw in recent_draws:
+            target_draw_no = draw["draw_no"]
+            target_draw = self.get_draw_by_no(target_draw_no)
+
+            if target_draw is None:
+                continue
+
+            train_max_draw_no = target_draw_no - 1
+            recommendation_engine = RecommendationEngine(max_draw_no=train_max_draw_no)
+            recommendations = recommendation_engine.generate_final_recommendations()
+
+            results = []
+
+            for item in recommendations:
+                compare_result = self.compare_numbers(
+                    item["numbers"],
+                    target_draw["numbers"],
+                    target_draw["bonus_number"]
+                )
+
+                results.append({
+                    "target_draw_no": target_draw_no,
+                    "train_max_draw_no": train_max_draw_no,
+                    "recommended_numbers": item["numbers"],
+                    "winning_numbers": target_draw["numbers"],
+                    "bonus_number": target_draw["bonus_number"],
+                    "match_count": compare_result["match_count"],
+                    "bonus_match": compare_result["bonus_match"],
+                    "rank": compare_result["rank"],
+                    "score": item["total_score"]
+                })
+
+            if results:
+                best_result = self.get_best_result(results)
+
+                all_results.append({
+                    "target_draw_no": target_draw_no,
+                    "train_max_draw_no": train_max_draw_no,
+                    "winning_numbers": draw["numbers"],
+                    "bonus_number": draw["bonus_number"],
+                    "best_result": best_result,
+                    "results": results
+                })
+
+        return all_results
+    
     def get_best_result(self, results):
         return sorted(
             results,

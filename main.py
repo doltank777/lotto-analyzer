@@ -123,8 +123,8 @@ def main():
             f"연속쌍 {pattern['consecutive']['pair_count']}개"
         )
         
-    print("\n최근 10회차 반복 백테스트")
-    backtest_results = backtest_engine.run_recent_backtests(test_count=10, recommend_count=10)
+    print("\n최근 10회차 최종 추천번호 5세트 기준 백테스트")
+    backtest_results = backtest_engine.run_recent_final_recommendation_backtests(test_count=10)
     summary = backtest_engine.summarize_backtest_results(backtest_results)
 
     print(
