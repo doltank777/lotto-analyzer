@@ -105,6 +105,22 @@ def main():
             f"상승 {item['rising_score']} | "
             f"장기미출현 {item['missing_score']}"
         )        
+
+    print("\n추천번호 10세트")
+    recommendations = recommendation_engine.generate_recommendations(10)
+
+    for index, item in enumerate(recommendations, start=1):
+        pattern = item["pattern"]
+
+        print(
+            f"{index}. {item['numbers']} | "
+            f"총점 {item['total_score']} | "
+            f"홀짝 {pattern['odd_even']['pattern']} | "
+            f"고저 {pattern['low_high']['pattern']} | "
+            f"합계 {pattern['sum']['sum']} | "
+            f"끝수 고유 {pattern['last_digit']['unique_digit_count']}개 | "
+            f"연속쌍 {pattern['consecutive']['pair_count']}개"
+        )
         
     print("\n최근 30회 패턴 요약")
     recent_patterns = pattern_analyzer.get_recent_pattern_summary(30)

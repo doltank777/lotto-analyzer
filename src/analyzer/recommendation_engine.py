@@ -1,3 +1,4 @@
+import random
 from itertools import combinations
 
 from src.analyzer.frequency_analyzer import FrequencyAnalyzer
@@ -46,6 +47,66 @@ class RecommendationEngine:
             })
 
         return sorted(result, key=lambda x: x["total_score"], reverse=True)
+
+    def generate_recommendations(self, set_count=10, candidate_pool_size=30, max_attempts=5000):
+        number_scores = self.calculate_number_scores()
+        candidate_numbers = [
+            item["number"]
+            for item in number_scores[:candidate_pool_size]
+        ]
+
+        recommendations = []
+        used_sets = set()
+        attempts = 0
+
+        while len(recommendations) < set_count and attempts < max_attempts:
+            attempts += 1
+
+            numbers = sorted(random.sample(candidate_numbers, 6))
+            numbers_key = tuple(numbers)
+
+            if numbers_key in used_sets:
+                continue
+
+            if not self.is_valid_recommendation(numbers):
+                continue
+
+            score_result = self.calculate_combination_score(numbers)
+
+            recommendations.append(score_result)
+            used_sets.add(numbers_key)
+
+        return sorted(
+            recommendations,
+            key=lambda x: x["total_score"],
+            reverse=True
+        )
+
+    def is_valid_recommendation(self, numbers):
+        pattern = self.pattern_analyzer.analyze_single_draw_pattern(numbers)
+
+        odd_even_pattern = pattern["odd_even"]["pattern"]
+        low_high_pattern = pattern["low_high"]["pattern"]
+        total_sum = pattern["sum"]["sum"]
+        unique_digit_count = pattern["last_digit"]["unique_digit_count"]
+        consecutive_pair_count = pattern["consecutive"]["pair_count"]
+
+        if odd_even_pattern not in ["3:3", "4:2", "2:4"]:
+            return False
+
+        if low_high_pattern not in ["3:3", "4:2", "2:4"]:
+            return False
+
+        if not 100 <= total_sum <= 170:
+            return False
+
+        if unique_digit_count < 5:
+            return False
+
+        if consecutive_pair_count > 1:
+            return False
+
+        return True
 
     def calculate_combination_score(self, numbers):
         numbers = sorted(numbers)
