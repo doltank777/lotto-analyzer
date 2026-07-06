@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import messagebox, scrolledtext, ttk
+from datetime import datetime
 
 from src.app.recommendation_service import RecommendationService
 
@@ -7,33 +8,71 @@ from src.app.recommendation_service import RecommendationService
 class MainWindow:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Lotto Analyzer(1.0.3)")
-        self.root.geometry("900x720")
+        self.root.title("Lotto Analyzer (1.0.4)")
+        self.root.geometry("940x760")
         self.root.resizable(False, False)
+
+        self.bg_color = "#f5f6f8"
+        self.panel_color = "#ffffff"
+        self.status_color = "#eceff3"
+
+        self.default_font = ("맑은 고딕", 10)
+        self.title_font = ("맑은 고딕", 24, "bold")
+        self.subtitle_font = ("맑은 고딕", 11)
+        self.button_font = ("맑은 고딕", 12, "bold")
+        self.section_title_font = ("맑은 고딕", 16, "bold")
+        self.text_font = ("Consolas", 11)
+
+        self.root.configure(bg=self.bg_color)
 
         self.recommendation_service = RecommendationService()
 
         self.create_widgets()
 
     def create_widgets(self):
+        self.create_styles()
         self.create_header()
         self.create_tabs()
+        self.create_status_bar()
+
+    def create_styles(self):
+        style = ttk.Style()
+
+        style.configure(
+            "TNotebook",
+            background=self.bg_color,
+            borderwidth=0
+        )
+
+        style.configure(
+            "TNotebook.Tab",
+            font=("맑은 고딕", 10, "bold"),
+            padding=(45, 10)
+        )
+
+        style.configure(
+            "Primary.TButton",
+            font=self.button_font,
+            padding=(15, 8)
+        )
 
     def create_header(self):
-        header_frame = tk.Frame(self.root)
-        header_frame.pack(fill="x", pady=(15, 5))
+        header_frame = tk.Frame(self.root, bg=self.bg_color)
+        header_frame.pack(fill="x", pady=(18, 5))
 
         title_label = tk.Label(
             header_frame,
             text="로또 분석기 (Lotto Analyzer)",
-            font=("맑은 고딕", 24, "bold")
+            font=self.title_font,
+            bg=self.bg_color
         )
         title_label.pack()
 
         description_label = tk.Label(
             header_frame,
             text="과거 당첨 데이터 기반 통계 분석 후 추천번호를 생성합니다.",
-            font=("맑은 고딕", 11)
+            font=self.subtitle_font,
+            bg=self.bg_color
         )
         description_label.pack(pady=(3, 0))
 
@@ -41,7 +80,8 @@ class MainWindow:
             header_frame,
             text="Developer : Y.YB",
             font=("맑은 고딕", 9),
-            fg="gray"
+            fg="gray",
+            bg=self.bg_color
         )
         developer_label.pack(pady=(2, 5))
 
@@ -49,17 +89,17 @@ class MainWindow:
         self.notebook = ttk.Notebook(self.root)
         self.notebook.pack(fill="both", expand=True, padx=15, pady=10)
 
-        self.recommend_tab = tk.Frame(self.notebook)
-        self.analysis_tab = tk.Frame(self.notebook)
-        self.backtest_tab = tk.Frame(self.notebook)
-        self.draw_search_tab = tk.Frame(self.notebook)
-        self.log_tab = tk.Frame(self.notebook)
+        self.recommend_tab = tk.Frame(self.notebook, bg=self.panel_color)
+        self.analysis_tab = tk.Frame(self.notebook, bg=self.panel_color)
+        self.backtest_tab = tk.Frame(self.notebook, bg=self.panel_color)
+        self.draw_search_tab = tk.Frame(self.notebook, bg=self.panel_color)
+        self.log_tab = tk.Frame(self.notebook, bg=self.panel_color)
 
         self.notebook.add(self.recommend_tab, text="추천번호")
-        self.notebook.add(self.analysis_tab, text="분석")
+        self.notebook.add(self.analysis_tab, text="통계분석")
         self.notebook.add(self.backtest_tab, text="백테스트")
         self.notebook.add(self.draw_search_tab, text="회차조회")
-        self.notebook.add(self.log_tab, text="로그")
+        self.notebook.add(self.log_tab, text="시스템로그")
 
         self.create_recommend_tab()
         self.create_analysis_tab()
@@ -68,15 +108,13 @@ class MainWindow:
         self.create_log_tab()
 
     def create_recommend_tab(self):
-        button_frame = tk.Frame(self.recommend_tab)
-        button_frame.pack(fill="x", pady=15)
+        button_frame = tk.Frame(self.recommend_tab, bg=self.panel_color)
+        button_frame.pack(fill="x", pady=(18, 10))
 
-        generate_button = tk.Button(
+        generate_button = ttk.Button(
             button_frame,
             text="최종 추천번호 5세트 생성",
-            font=("맑은 고딕", 13, "bold"),
-            width=30,
-            height=2,
+            style="Primary.TButton",
             command=self.generate_recommendations
         )
         generate_button.pack()
@@ -84,18 +122,21 @@ class MainWindow:
         self.recommend_status_label = tk.Label(
             self.recommend_tab,
             text="상태 : 대기",
-            font=("맑은 고딕", 10),
+            font=self.default_font,
+            bg=self.panel_color,
             anchor="w"
         )
-        self.recommend_status_label.pack(fill="x", padx=10)
+        self.recommend_status_label.pack(fill="x", padx=15)
 
         self.recommend_result_text = scrolledtext.ScrolledText(
             self.recommend_tab,
-            width=100,
-            height=27,
-            font=("Consolas", 11)
+            width=105,
+            height=28,
+            font=self.text_font,
+            relief="solid",
+            borderwidth=1
         )
-        self.recommend_result_text.pack(padx=10, pady=10)
+        self.recommend_result_text.pack(padx=15, pady=10)
 
         self.recommend_result_text.insert(
             tk.END,
@@ -105,29 +146,33 @@ class MainWindow:
     def create_analysis_tab(self):
         title_label = tk.Label(
             self.analysis_tab,
-            text="분석 화면",
-            font=("맑은 고딕", 16, "bold")
+            text="통계분석",
+            font=self.section_title_font,
+            bg=self.panel_color
         )
-        title_label.pack(pady=(30, 10))
+        title_label.pack(pady=(25, 10))
 
         description_label = tk.Label(
             self.analysis_tab,
             text="번호 출현 빈도, HOT/COLD 번호, Pair, Triple, 패턴 분석 결과를 표시할 예정입니다.",
-            font=("맑은 고딕", 11)
+            font=self.default_font,
+            bg=self.panel_color
         )
         description_label.pack(pady=5)
 
         self.analysis_text = scrolledtext.ScrolledText(
             self.analysis_tab,
-            width=100,
-            height=27,
-            font=("Consolas", 11)
+            width=105,
+            height=28,
+            font=self.text_font,
+            relief="solid",
+            borderwidth=1
         )
-        self.analysis_text.pack(padx=10, pady=20)
+        self.analysis_text.pack(padx=15, pady=20)
 
         self.analysis_text.insert(
             tk.END,
-            "분석 탭 준비 완료\n\n"
+            "통계분석 탭 준비 완료\n\n"
             "다음 단계에서 아래 기능을 연결합니다.\n"
             "- 전체 번호 출현 빈도\n"
             "- HOT 번호\n"
@@ -141,25 +186,29 @@ class MainWindow:
     def create_backtest_tab(self):
         title_label = tk.Label(
             self.backtest_tab,
-            text="백테스트 화면",
-            font=("맑은 고딕", 16, "bold")
+            text="백테스트",
+            font=self.section_title_font,
+            bg=self.panel_color
         )
-        title_label.pack(pady=(30, 10))
+        title_label.pack(pady=(25, 10))
 
         description_label = tk.Label(
             self.backtest_tab,
             text="최근 회차 기준 추천번호 성능을 검증하는 백테스트 결과를 표시할 예정입니다.",
-            font=("맑은 고딕", 11)
+            font=self.default_font,
+            bg=self.panel_color
         )
         description_label.pack(pady=5)
 
         self.backtest_text = scrolledtext.ScrolledText(
             self.backtest_tab,
-            width=100,
-            height=27,
-            font=("Consolas", 11)
+            width=105,
+            height=28,
+            font=self.text_font,
+            relief="solid",
+            borderwidth=1
         )
-        self.backtest_text.pack(padx=10, pady=20)
+        self.backtest_text.pack(padx=15, pady=20)
 
         self.backtest_text.insert(
             tk.END,
@@ -176,50 +225,53 @@ class MainWindow:
     def create_draw_search_tab(self):
         title_label = tk.Label(
             self.draw_search_tab,
-            text="회차조회 화면",
-            font=("맑은 고딕", 16, "bold")
+            text="회차조회",
+            font=self.section_title_font,
+            bg=self.panel_color
         )
-        title_label.pack(pady=(30, 10))
+        title_label.pack(pady=(25, 10))
 
         description_label = tk.Label(
             self.draw_search_tab,
             text="특정 회차의 당첨번호를 조회하는 기능을 추가할 예정입니다.",
-            font=("맑은 고딕", 11)
+            font=self.default_font,
+            bg=self.panel_color
         )
         description_label.pack(pady=5)
 
-        search_frame = tk.Frame(self.draw_search_tab)
+        search_frame = tk.Frame(self.draw_search_tab, bg=self.panel_color)
         search_frame.pack(pady=20)
 
         tk.Label(
             search_frame,
             text="회차 입력",
-            font=("맑은 고딕", 11)
+            font=self.default_font,
+            bg=self.panel_color
         ).pack(side="left", padx=5)
 
         self.draw_no_entry = tk.Entry(
             search_frame,
             width=15,
-            font=("맑은 고딕", 11)
+            font=self.default_font
         )
         self.draw_no_entry.pack(side="left", padx=5)
 
-        search_button = tk.Button(
+        search_button = ttk.Button(
             search_frame,
             text="조회",
-            font=("맑은 고딕", 10),
-            width=10,
             command=self.show_draw_search_ready_message
         )
         search_button.pack(side="left", padx=5)
 
         self.draw_search_text = scrolledtext.ScrolledText(
             self.draw_search_tab,
-            width=100,
-            height=23,
-            font=("Consolas", 11)
+            width=105,
+            height=24,
+            font=self.text_font,
+            relief="solid",
+            borderwidth=1
         )
-        self.draw_search_text.pack(padx=10, pady=10)
+        self.draw_search_text.pack(padx=15, pady=10)
 
         self.draw_search_text.insert(
             tk.END,
@@ -230,74 +282,65 @@ class MainWindow:
     def create_log_tab(self):
         title_label = tk.Label(
             self.log_tab,
-            text="로그",
-            font=("맑은 고딕", 16, "bold")
+            text="시스템로그",
+            font=self.section_title_font,
+            bg=self.panel_color
         )
         title_label.pack(pady=(20, 10))
 
         self.log_text = scrolledtext.ScrolledText(
             self.log_tab,
-            width=100,
-            height=30,
-            font=("Consolas", 10)
+            width=105,
+            height=31,
+            font=("Consolas", 10),
+            relief="solid",
+            borderwidth=1
         )
-        self.log_text.pack(padx=10, pady=10)
+        self.log_text.pack(padx=15, pady=10)
 
         self.add_log("프로그램 시작")
-        self.add_log("GUI 탭 화면 초기화 완료")
+        self.add_log("GUI 스타일 초기화 완료")
+        self.add_log("탭 화면 초기화 완료")
+
+    def create_status_bar(self):
+        self.status_bar = tk.Label(
+            self.root,
+            text="Lotto Analyzer 준비 완료 | DB 연결 정상 | Developer : Y.YB",
+            font=("맑은 고딕", 9),
+            bg=self.status_color,
+            anchor="w",
+            padx=10
+        )
+        self.status_bar.pack(fill="x", side="bottom")
+
+    def set_status(self, message):
+        self.status_bar.config(text=message)
+        self.root.update_idletasks()
 
     def generate_recommendations(self):
         try:
             self.recommend_status_label.config(text="상태 : 추천번호 생성 중...")
+            self.set_status("추천번호 생성 중...")
             self.add_log("추천번호 생성 시작")
-
-            self.root.update_idletasks()
 
             self.recommend_result_text.delete("1.0", tk.END)
 
             recommendations = self.recommendation_service.get_final_recommendations()
 
-            self.recommend_result_text.insert(tk.END, "=" * 85 + "\n")
-            self.recommend_result_text.insert(tk.END, "               최종 추천번호 5세트\n")
-            self.recommend_result_text.insert(tk.END, "=" * 85 + "\n\n")
+            self.recommend_result_text.insert(tk.END, "=" * 90 + "\n")
+            self.recommend_result_text.insert(tk.END, "                    최종 추천번호 5세트\n")
+            self.recommend_result_text.insert(tk.END, "=" * 90 + "\n\n")
 
             for item in recommendations:
                 pattern = item["pattern"]
 
-                self.recommend_result_text.insert(
-                    tk.END,
-                    f"[{item['index']}세트]\n"
-                )
-
-                self.recommend_result_text.insert(
-                    tk.END,
-                    f"번호 : {item['numbers']}\n"
-                )
-
-                self.recommend_result_text.insert(
-                    tk.END,
-                    f"총점 : {item['total_score']}\n"
-                )
-
-                self.recommend_result_text.insert(
-                    tk.END,
-                    f"홀짝 : {pattern['odd_even']['pattern']}\n"
-                )
-
-                self.recommend_result_text.insert(
-                    tk.END,
-                    f"고저 : {pattern['low_high']['pattern']}\n"
-                )
-
-                self.recommend_result_text.insert(
-                    tk.END,
-                    f"번호합 : {pattern['sum']['sum']}\n"
-                )
-
-                self.recommend_result_text.insert(
-                    tk.END,
-                    "-" * 85 + "\n"
-                )
+                self.recommend_result_text.insert(tk.END, f"[{item['index']}세트]\n")
+                self.recommend_result_text.insert(tk.END, f"번호   : {item['numbers']}\n")
+                self.recommend_result_text.insert(tk.END, f"총점   : {item['total_score']}\n")
+                self.recommend_result_text.insert(tk.END, f"홀짝   : {pattern['odd_even']['pattern']}\n")
+                self.recommend_result_text.insert(tk.END, f"고저   : {pattern['low_high']['pattern']}\n")
+                self.recommend_result_text.insert(tk.END, f"번호합 : {pattern['sum']['sum']}\n")
+                self.recommend_result_text.insert(tk.END, "-" * 90 + "\n")
 
             self.recommend_result_text.insert(
                 tk.END,
@@ -305,10 +348,12 @@ class MainWindow:
             )
 
             self.recommend_status_label.config(text="상태 : 추천번호 생성 완료")
+            self.set_status("추천번호 생성 완료 | Lotto Analyzer 정상 동작 중")
             self.add_log("추천번호 생성 완료")
 
         except Exception as e:
             self.recommend_status_label.config(text="상태 : 오류 발생")
+            self.set_status("오류 발생")
             self.add_log(f"추천번호 생성 오류: {e}")
 
             messagebox.showerror(
@@ -322,10 +367,12 @@ class MainWindow:
             "회차조회 기능은 다음 단계에서 연결합니다."
         )
         self.add_log("회차조회 버튼 클릭")
+        self.set_status("회차조회 기능 준비 중")
 
     def add_log(self, message):
         if hasattr(self, "log_text"):
-            self.log_text.insert(tk.END, f"- {message}\n")
+            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            self.log_text.insert(tk.END, f"[{now}] {message}\n")
             self.log_text.see(tk.END)
 
     def run(self):
