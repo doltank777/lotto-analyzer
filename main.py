@@ -129,13 +129,27 @@ def main():
 
     print(
         f"검증 회차 수: {summary['test_count']}회 | "
-        f"추천 조합 수: {summary['total_recommendation_count']}세트 | "
-        f"최대 일치 개수: {summary['max_match_count']}개"
+        f"추천 조합 수: {summary['total_recommendation_count']}세트"
+    )
+
+    print(
+        f"전체 평균 일치 개수: {summary['average_match_count']}개 | "
+        f"전체 최고 일치 개수: {summary['max_match_count']}개 | "
+        f"번호 적중률: {summary['number_hit_rate']}%"
+    )
+
+    print(
+        f"회차별 최고 추천 평균 일치 개수: {summary['best_average_match_count']}개 | "
+        f"회차별 최고 추천 최대 일치 개수: {summary['best_max_match_count']}개"
     )
 
     print("\n등수 요약")
     for rank, count in summary["rank_counts"].items():
         print(f"{rank}: {count}건")
+
+    print("\n일치 개수 분포")
+    for match_count, count in summary["match_count_distribution"].items():
+        print(f"{match_count}개 일치: {count}건")
 
     print("\n회차별 최고 결과")
     for item in backtest_results:
@@ -148,8 +162,9 @@ def main():
             f"최고 추천: {best['recommended_numbers']} | "
             f"일치 {best['match_count']}개 | "
             f"보너스 {'일치' if best['bonus_match'] else '불일치'} | "
+            f"점수 {best['score']} | "
             f"결과 {best['rank'] if best['rank'] else '낙첨'}"
-        )    
+        )
             
     print("\n최근 30회 패턴 요약")
     recent_patterns = pattern_analyzer.get_recent_pattern_summary(30)

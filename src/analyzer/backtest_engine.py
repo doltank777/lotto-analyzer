@@ -155,17 +155,61 @@ class BacktestEngine:
                 "5등": 0,
                 "낙첨": 0
             },
-            "max_match_count": 0
+            "match_count_distribution": {
+                0: 0,
+                1: 0,
+                2: 0,
+                3: 0,
+                4: 0,
+                5: 0,
+                6: 0
+            },
+            "max_match_count": 0,
+            "total_match_count": 0,
+            "average_match_count": 0,
+            "number_hit_rate": 0,
+            "best_total_match_count": 0,
+            "best_average_match_count": 0,
+            "best_max_match_count": 0
         }
 
         for backtest in backtest_results:
+            best_result = backtest["best_result"]
+
+            summary["best_total_match_count"] += best_result["match_count"]
+
+            if best_result["match_count"] > summary["best_max_match_count"]:
+                summary["best_max_match_count"] = best_result["match_count"]
+
             for result in backtest["results"]:
                 summary["total_recommendation_count"] += 1
+                summary["total_match_count"] += result["match_count"]
 
                 rank = result["rank"] if result["rank"] else "낙첨"
                 summary["rank_counts"][rank] += 1
 
+                summary["match_count_distribution"][result["match_count"]] += 1
+
                 if result["match_count"] > summary["max_match_count"]:
                     summary["max_match_count"] = result["match_count"]
+
+        total_recommendation_count = summary["total_recommendation_count"]
+
+        if total_recommendation_count > 0:
+            summary["average_match_count"] = round(
+                summary["total_match_count"] / total_recommendation_count,
+                2
+            )
+
+            summary["number_hit_rate"] = round(
+                (summary["total_match_count"] / (total_recommendation_count * 6)) * 100,
+                2
+            )
+
+        if summary["test_count"] > 0:
+            summary["best_average_match_count"] = round(
+                summary["best_total_match_count"] / summary["test_count"],
+                2
+            )
 
         return summary
