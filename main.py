@@ -31,7 +31,7 @@ def main():
     pattern_analyzer = PatternAnalyzer()
     missing_number_analyzer = MissingNumberAnalyzer()
     recommendation_engine = RecommendationEngine()
-    backtest_engine = BacktestEngine()
+    backtest_engine = BacktestEngine()    
 
     print("\n가장 많이 나온 번호 TOP 10")
     for item in frequency_analyzer.get_most_common_numbers(10):
@@ -122,7 +122,35 @@ def main():
             f"끝수 고유 {pattern['last_digit']['unique_digit_count']}개 | "
             f"연속쌍 {pattern['consecutive']['pair_count']}개"
         )
+        
+    print("\n최근 10회차 반복 백테스트")
+    backtest_results = backtest_engine.run_recent_backtests(test_count=10, recommend_count=10)
+    summary = backtest_engine.summarize_backtest_results(backtest_results)
 
+    print(
+        f"검증 회차 수: {summary['test_count']}회 | "
+        f"추천 조합 수: {summary['total_recommendation_count']}세트 | "
+        f"최대 일치 개수: {summary['max_match_count']}개"
+    )
+
+    print("\n등수 요약")
+    for rank, count in summary["rank_counts"].items():
+        print(f"{rank}: {count}건")
+
+    print("\n회차별 최고 결과")
+    for item in backtest_results:
+        best = item["best_result"]
+
+        print(
+            f"{item['target_draw_no']}회 | "
+            f"학습: {item['train_max_draw_no']}회까지 | "
+            f"당첨: {item['winning_numbers']} + 보너스 {item['bonus_number']} | "
+            f"최고 추천: {best['recommended_numbers']} | "
+            f"일치 {best['match_count']}개 | "
+            f"보너스 {'일치' if best['bonus_match'] else '불일치'} | "
+            f"결과 {best['rank'] if best['rank'] else '낙첨'}"
+        )
+    
     print("\n최근 회차 백테스트")
     backtest_results = backtest_engine.run_latest_backtest(10)
 
