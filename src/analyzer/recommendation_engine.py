@@ -10,13 +10,15 @@ from src.analyzer.missing_number_analyzer import MissingNumberAnalyzer
 
 
 class RecommendationEngine:
-    def __init__(self):
-        self.frequency_analyzer = FrequencyAnalyzer()
-        self.trend_analyzer = TrendAnalyzer()
-        self.pair_analyzer = PairAnalyzer()
-        self.triple_analyzer = TripleAnalyzer()
-        self.pattern_analyzer = PatternAnalyzer()
-        self.missing_number_analyzer = MissingNumberAnalyzer()
+    def __init__(self, max_draw_no=None):
+        self.max_draw_no = max_draw_no
+
+        self.frequency_analyzer = FrequencyAnalyzer(max_draw_no=max_draw_no)
+        self.trend_analyzer = TrendAnalyzer(max_draw_no=max_draw_no)
+        self.pair_analyzer = PairAnalyzer(max_draw_no=max_draw_no)
+        self.triple_analyzer = TripleAnalyzer(max_draw_no=max_draw_no)
+        self.pattern_analyzer = PatternAnalyzer(max_draw_no=max_draw_no)
+        self.missing_number_analyzer = MissingNumberAnalyzer(max_draw_no=max_draw_no)
 
     def calculate_number_scores(self):
         frequency_scores = self._get_frequency_scores()
@@ -135,7 +137,14 @@ class RecommendationEngine:
 
     def _get_frequency_scores(self):
         frequencies = self.frequency_analyzer.get_number_frequency()
+
+        if not frequencies:
+            return {number: 0 for number in range(1, 46)}
+
         max_count = max(item["count"] for item in frequencies)
+
+        if max_count == 0:
+            return {number: 0 for number in range(1, 46)}
 
         return {
             item["number"]: round(item["count"] / max_count, 4)
@@ -144,6 +153,10 @@ class RecommendationEngine:
 
     def _get_recent_scores(self, recent_count):
         hot_numbers = self.trend_analyzer.get_hot_numbers(recent_count, 45)
+
+        if not hot_numbers:
+            return {number: 0 for number in range(1, 46)}
+
         max_count = max(item["count"] for item in hot_numbers)
 
         if max_count == 0:
@@ -156,6 +169,10 @@ class RecommendationEngine:
 
     def _get_rising_scores(self):
         rising_numbers = self.trend_analyzer.get_rising_numbers(45)
+
+        if not rising_numbers:
+            return {number: 0 for number in range(1, 46)}
+
         max_diff = max(item["diff"] for item in rising_numbers)
 
         if max_diff <= 0:
@@ -171,6 +188,10 @@ class RecommendationEngine:
 
     def _get_missing_scores(self):
         missing_numbers = self.missing_number_analyzer.analyze_missing_numbers()
+
+        if not missing_numbers:
+            return {number: 0 for number in range(1, 46)}
+
         max_missing = max(item["missing_draws"] for item in missing_numbers)
 
         if max_missing == 0:
