@@ -1,25 +1,34 @@
-# 상승/하락 추세
 import sqlite3
 from collections import Counter
 
 
 class TrendAnalyzer:
-    def __init__(self, db_path="database/lotto.db"):
+    def __init__(self, db_path="database/lotto.db", max_draw_no=None):
         self.db_path = db_path
+        self.max_draw_no = max_draw_no
 
     def _get_connection(self):
         return sqlite3.connect(self.db_path)
 
-    def get_recent_draws(self, limit):
+    def get_recent_draws(self, limit, offset=0):
         conn = self._get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT number1, number2, number3, number4, number5, number6
-            FROM lotto_winning_numbers
-            ORDER BY draw_no DESC
-            LIMIT ?
-        """, (limit,))
+        if self.max_draw_no is None:
+            cursor.execute("""
+                SELECT number1, number2, number3, number4, number5, number6
+                FROM lotto_winning_numbers
+                ORDER BY draw_no DESC
+                LIMIT ? OFFSET ?
+            """, (limit, offset))
+        else:
+            cursor.execute("""
+                SELECT number1, number2, number3, number4, number5, number6
+                FROM lotto_winning_numbers
+                WHERE draw_no <= ?
+                ORDER BY draw_no DESC
+                LIMIT ? OFFSET ?
+            """, (self.max_draw_no, limit, offset))
 
         rows = cursor.fetchall()
         conn.close()
@@ -66,24 +75,8 @@ class TrendAnalyzer:
         )[:limit]
 
     def get_rising_numbers(self, limit=10, recent_count=30, previous_count=30):
-        recent_numbers = self.get_recent_draws(recent_count)
-
-        conn = self._get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT number1, number2, number3, number4, number5, number6
-            FROM lotto_winning_numbers
-            ORDER BY draw_no DESC
-            LIMIT ? OFFSET ?
-        """, (previous_count, recent_count))
-
-        rows = cursor.fetchall()
-        conn.close()
-
-        previous_numbers = []
-        for row in rows:
-            previous_numbers.extend(row)
+        recent_numbers = self.get_recent_draws(recent_count, offset=0)
+        previous_numbers = self.get_recent_draws(previous_count, offset=recent_count)
 
         recent_counter = Counter(recent_numbers)
         previous_counter = Counter(previous_numbers)
@@ -109,24 +102,8 @@ class TrendAnalyzer:
         )[:limit]
 
     def get_falling_numbers(self, limit=10, recent_count=30, previous_count=30):
-        recent_numbers = self.get_recent_draws(recent_count)
-
-        conn = self._get_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT number1, number2, number3, number4, number5, number6
-            FROM lotto_winning_numbers
-            ORDER BY draw_no DESC
-            LIMIT ? OFFSET ?
-        """, (previous_count, recent_count))
-
-        rows = cursor.fetchall()
-        conn.close()
-
-        previous_numbers = []
-        for row in rows:
-            previous_numbers.extend(row)
+        recent_numbers = self.get_recent_draws(recent_count, offset=0)
+        previous_numbers = self.get_recent_draws(previous_count, offset=recent_count)
 
         recent_counter = Counter(recent_numbers)
         previous_counter = Counter(previous_numbers)
