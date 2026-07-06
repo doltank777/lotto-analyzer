@@ -4,7 +4,7 @@ from datetime import datetime
 
 from src.app.recommendation_service import RecommendationService
 from src.app.draw_search_service import DrawSearchService
-
+from src.app.analysis_service import AnalysisService
 
 class MainWindow:
     def __init__(self):
@@ -27,11 +27,10 @@ class MainWindow:
         self.root.configure(bg=self.bg_color)
 
         self.recommendation_service = RecommendationService()
-
-        self.create_widgets()
-        
         self.draw_search_service = DrawSearchService()
-        
+        self.analysis_service = AnalysisService()
+
+        self.create_widgets()        
 
     def create_widgets(self):
         self.create_styles()
@@ -146,7 +145,132 @@ class MainWindow:
             tk.END,
             "추천번호 생성 버튼을 눌러주세요.\n"
         )
+        
+    def run_analysis_summary(self):
+        try:
+            self.set_status("통계분석 실행 중...")
+            self.add_log("통계분석 실행 시작")
 
+            self.analysis_text.delete("1.0", tk.END)
+
+            summary = self.analysis_service.get_analysis_summary()
+
+            self.analysis_text.insert(tk.END, "=" * 90 + "\n")
+            self.analysis_text.insert(tk.END, "                    통계분석 결과\n")
+            self.analysis_text.insert(tk.END, "=" * 90 + "\n\n")
+
+            self.analysis_text.insert(tk.END, "[전체 출현 빈도 TOP 10]\n")
+            for item in summary["most_common_numbers"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['number']:>2}번 - {item['count']}회 ({item['rate']}%)\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[전체 저출현 번호 TOP 10]\n")
+            for item in summary["least_common_numbers"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['number']:>2}번 - {item['count']}회 ({item['rate']}%)\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[최근 30회 HOT 번호 TOP 10]\n")
+            for item in summary["hot_numbers"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['number']:>2}번 - {item['count']}회\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[최근 30회 COLD 번호 TOP 10]\n")
+            for item in summary["cold_numbers"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['number']:>2}번 - {item['count']}회\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[상승 번호 TOP 10]\n")
+            for item in summary["rising_numbers"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['number']:>2}번 - 최근 {item['recent_count']}회 / 이전 {item['previous_count']}회 / 차이 {item['diff']}\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[하락 번호 TOP 10]\n")
+            for item in summary["falling_numbers"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['number']:>2}번 - 최근 {item['recent_count']}회 / 이전 {item['previous_count']}회 / 차이 {item['diff']}\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[동시 출현 번호쌍 TOP 20]\n")
+            for item in summary["top_pairs"]:
+                pair = item["pair"]
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{pair[0]:>2}번 + {pair[1]:>2}번 - {item['count']}회 ({item['rate']}%)\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[3개 번호 동시 출현 TOP 20]\n")
+            for item in summary["top_triples"]:
+                triple = item["triple"]
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{triple[0]:>2}번 + {triple[1]:>2}번 + {triple[2]:>2}번 - {item['count']}회 ({item['rate']}%)\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[장기 미출현 번호 TOP 10]\n")
+            for item in summary["missing_numbers"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['number']:>2}번 - {item['missing_draws']}회 미출현 / 마지막 출현 {item['last_seen_draw_no']}회\n"
+                )
+
+            pattern_summary = summary["pattern_summary"]
+
+            self.analysis_text.insert(tk.END, "\n[홀짝 패턴 분포]\n")
+            for item in pattern_summary["odd_even"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['pattern']} - {item['count']}회 ({item['rate']}%)\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[고저 패턴 분포]\n")
+            for item in pattern_summary["low_high"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['pattern']} - {item['count']}회 ({item['rate']}%)\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[번호합 구간 분포]\n")
+            for item in pattern_summary["sum"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['pattern']} - {item['count']}회 ({item['rate']}%)\n"
+                )
+
+            self.analysis_text.insert(tk.END, "\n[연속번호 개수 분포]\n")
+            for item in pattern_summary["consecutive"]:
+                self.analysis_text.insert(
+                    tk.END,
+                    f"{item['pattern']}쌍 - {item['count']}회 ({item['rate']}%)\n"
+                )
+
+            self.analysis_text.insert(
+                tk.END,
+                "\n※ 본 통계분석은 저장된 과거 당첨번호 데이터를 기준으로 계산됩니다.\n"
+            )
+
+            self.set_status("통계분석 완료 | Lotto Analyzer 정상 동작 중")
+            self.add_log("통계분석 완료")
+
+        except Exception as e:
+            self.set_status("통계분석 오류 발생")
+            self.add_log(f"통계분석 오류: {e}")
+
+            messagebox.showerror(
+                "오류",
+                f"통계분석 중 오류가 발생했습니다.\n\n{e}"
+            )
+            
     def create_analysis_tab(self):
         title_label = tk.Label(
             self.analysis_tab,
@@ -154,37 +278,40 @@ class MainWindow:
             font=self.section_title_font,
             bg=self.panel_color
         )
-        title_label.pack(pady=(25, 10))
+        title_label.pack(pady=(20, 8))
 
         description_label = tk.Label(
             self.analysis_tab,
-            text="번호 출현 빈도, HOT/COLD 번호, Pair, Triple, 패턴 분석 결과를 표시할 예정입니다.",
+            text="과거 당첨 데이터를 기준으로 주요 통계분석 결과를 조회합니다.",
             font=self.default_font,
             bg=self.panel_color
         )
         description_label.pack(pady=5)
 
+        button_frame = tk.Frame(self.analysis_tab, bg=self.panel_color)
+        button_frame.pack(pady=10)
+
+        analysis_button = ttk.Button(
+            button_frame,
+            text="통계분석 실행",
+            style="Primary.TButton",
+            command=self.run_analysis_summary
+        )
+        analysis_button.pack()
+
         self.analysis_text = scrolledtext.ScrolledText(
             self.analysis_tab,
             width=105,
-            height=28,
+            height=25,
             font=self.text_font,
             relief="solid",
             borderwidth=1
         )
-        self.analysis_text.pack(padx=15, pady=20)
+        self.analysis_text.pack(padx=15, pady=10)
 
         self.analysis_text.insert(
             tk.END,
-            "통계분석 탭 준비 완료\n\n"
-            "다음 단계에서 아래 기능을 연결합니다.\n"
-            "- 전체 번호 출현 빈도\n"
-            "- HOT 번호\n"
-            "- COLD 번호\n"
-            "- Pair TOP20\n"
-            "- Triple TOP20\n"
-            "- 패턴 분석\n"
-            "- 장기 미출현 번호\n"
+            "통계분석 실행 버튼을 눌러주세요.\n"
         )
 
     def create_backtest_tab(self):
@@ -434,3 +561,5 @@ class MainWindow:
 
     def run(self):
         self.root.mainloop()
+        
+    
