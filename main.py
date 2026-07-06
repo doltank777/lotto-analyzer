@@ -149,20 +149,7 @@ def main():
             f"일치 {best['match_count']}개 | "
             f"보너스 {'일치' if best['bonus_match'] else '불일치'} | "
             f"결과 {best['rank'] if best['rank'] else '낙첨'}"
-        )
-    
-    print("\n최근 회차 백테스트")
-    backtest_results = backtest_engine.run_latest_backtest(10)
-
-    for item in backtest_results:
-        print(
-            f"{item['draw_no']}회 | "
-            f"추천 {item['recommended_numbers']} | "
-            f"당첨 {item['winning_numbers']} + 보너스 {item['bonus_number']} | "
-            f"일치 {item['match_count']}개 | "
-            f"보너스 {'일치' if item['bonus_match'] else '불일치'} | "
-            f"결과 {item['rank'] if item['rank'] else '낙첨'}"
-        )
+        )    
             
     print("\n최근 30회 패턴 요약")
     recent_patterns = pattern_analyzer.get_recent_pattern_summary(30)
