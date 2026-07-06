@@ -5,6 +5,8 @@ from src.analyzer.trend_analyzer import TrendAnalyzer
 from src.analyzer.pair_analyzer import PairAnalyzer
 from src.analyzer.triple_analyzer import TripleAnalyzer
 from src.analyzer.pattern_analyzer import PatternAnalyzer
+from src.analyzer.missing_number_analyzer import MissingNumberAnalyzer
+
 
 
 def print_distribution(title, distribution):
@@ -27,6 +29,7 @@ def main():
     pair_analyzer = PairAnalyzer()
     triple_analyzer = TripleAnalyzer()
     pattern_analyzer = PatternAnalyzer()
+    missing_number_analyzer = MissingNumberAnalyzer()
 
     print("\n가장 많이 나온 번호 TOP 10")
     for item in frequency_analyzer.get_most_common_numbers(10):
@@ -81,7 +84,15 @@ def main():
             f"{triple[2]}번 - "
             f"{item['count']}회 ({item['rate']}%)"
         )
-
+        
+    print("\n장기 미출현 번호 TOP 10")
+    for item in missing_number_analyzer.get_top_missing_numbers(10):
+        print(
+            f"{item['number']}번 - "
+            f"{item['missing_draws']}회 미출현 "
+            f"(마지막 출현: {item['last_seen_draw_no']}회)"
+        )
+        
     print("\n최근 30회 패턴 요약")
     recent_patterns = pattern_analyzer.get_recent_pattern_summary(30)
 
