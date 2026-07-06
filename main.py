@@ -7,7 +7,7 @@ from src.analyzer.triple_analyzer import TripleAnalyzer
 from src.analyzer.pattern_analyzer import PatternAnalyzer
 from src.analyzer.missing_number_analyzer import MissingNumberAnalyzer
 from src.analyzer.recommendation_engine import RecommendationEngine
-
+from src.analyzer.backtest_engine import BacktestEngine
 
 def print_distribution(title, distribution):
     print(f"\n{title}")
@@ -31,6 +31,7 @@ def main():
     pattern_analyzer = PatternAnalyzer()
     missing_number_analyzer = MissingNumberAnalyzer()
     recommendation_engine = RecommendationEngine()
+    backtest_engine = BacktestEngine()
 
     print("\n가장 많이 나온 번호 TOP 10")
     for item in frequency_analyzer.get_most_common_numbers(10):
@@ -121,7 +122,20 @@ def main():
             f"끝수 고유 {pattern['last_digit']['unique_digit_count']}개 | "
             f"연속쌍 {pattern['consecutive']['pair_count']}개"
         )
-        
+
+    print("\n최근 회차 백테스트")
+    backtest_results = backtest_engine.run_latest_backtest(10)
+
+    for item in backtest_results:
+        print(
+            f"{item['draw_no']}회 | "
+            f"추천 {item['recommended_numbers']} | "
+            f"당첨 {item['winning_numbers']} + 보너스 {item['bonus_number']} | "
+            f"일치 {item['match_count']}개 | "
+            f"보너스 {'일치' if item['bonus_match'] else '불일치'} | "
+            f"결과 {item['rank'] if item['rank'] else '낙첨'}"
+        )
+            
     print("\n최근 30회 패턴 요약")
     recent_patterns = pattern_analyzer.get_recent_pattern_summary(30)
 
