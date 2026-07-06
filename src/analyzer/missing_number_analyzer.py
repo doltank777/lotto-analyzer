@@ -2,15 +2,26 @@ from src.db.database import get_connection
 
 
 class MissingNumberAnalyzer:
+    def __init__(self, max_draw_no=None):
+        self.max_draw_no = max_draw_no
+
     def get_all_draw_numbers(self):
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT draw_no, number1, number2, number3, number4, number5, number6
-            FROM lotto_winning_numbers
-            ORDER BY draw_no DESC
-        """)
+        if self.max_draw_no is None:
+            cursor.execute("""
+                SELECT draw_no, number1, number2, number3, number4, number5, number6
+                FROM lotto_winning_numbers
+                ORDER BY draw_no DESC
+            """)
+        else:
+            cursor.execute("""
+                SELECT draw_no, number1, number2, number3, number4, number5, number6
+                FROM lotto_winning_numbers
+                WHERE draw_no <= ?
+                ORDER BY draw_no DESC
+            """, (self.max_draw_no,))
 
         rows = cursor.fetchall()
         conn.close()

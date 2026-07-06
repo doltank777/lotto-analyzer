@@ -1,28 +1,32 @@
- # 홀짝, 합계, 끝수, 연속번호
 import sqlite3
-from collections import Counter, defaultdict
-from itertools import combinations
+from collections import Counter
 
 
 class PatternAnalyzer:
-    def __init__(self, db_path="database/lotto.db"):
+    def __init__(self, db_path="database/lotto.db", max_draw_no=None):
         self.db_path = db_path
+        self.max_draw_no = max_draw_no
 
     def _get_connection(self):
         return sqlite3.connect(self.db_path)
 
     def get_all_draws(self):
-        """
-        전체 당첨번호 조회
-        """
         conn = self._get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT draw_no, number1, number2, number3, number4, number5, number6
-            FROM lotto_winning_numbers
-            ORDER BY draw_no ASC
-        """)
+        if self.max_draw_no is None:
+            cursor.execute("""
+                SELECT draw_no, number1, number2, number3, number4, number5, number6
+                FROM lotto_winning_numbers
+                ORDER BY draw_no ASC
+            """)
+        else:
+            cursor.execute("""
+                SELECT draw_no, number1, number2, number3, number4, number5, number6
+                FROM lotto_winning_numbers
+                WHERE draw_no <= ?
+                ORDER BY draw_no ASC
+            """, (self.max_draw_no,))
 
         rows = cursor.fetchall()
         conn.close()
@@ -36,10 +40,6 @@ class PatternAnalyzer:
         ]
 
     def analyze_single_draw_pattern(self, numbers):
-        """
-        특정 번호 조합 1개의 패턴 분석
-        추천 알고리즘에서도 재사용 가능
-        """
         numbers = sorted(numbers)
 
         return {
@@ -51,9 +51,6 @@ class PatternAnalyzer:
         }
 
     def get_odd_even_pattern(self, numbers):
-        """
-        홀짝 분석
-        """
         odd_count = sum(1 for number in numbers if number % 2 == 1)
         even_count = len(numbers) - odd_count
 
@@ -64,12 +61,6 @@ class PatternAnalyzer:
         }
 
     def get_low_high_pattern(self, numbers):
-        """
-        고저 분석
-        기준:
-        - 저번호: 1 ~ 22
-        - 고번호: 23 ~ 45
-        """
         low_count = sum(1 for number in numbers if number <= 22)
         high_count = len(numbers) - low_count
 
@@ -80,9 +71,6 @@ class PatternAnalyzer:
         }
 
     def get_sum_pattern(self, numbers):
-        """
-        번호합 분석
-        """
         total_sum = sum(numbers)
 
         return {
@@ -91,9 +79,6 @@ class PatternAnalyzer:
         }
 
     def get_sum_range(self, total_sum):
-        """
-        번호합 구간 분류
-        """
         if total_sum < 80:
             return "80미만"
         elif total_sum < 100:
@@ -110,10 +95,6 @@ class PatternAnalyzer:
             return "180이상"
 
     def get_last_digit_pattern(self, numbers):
-        """
-        끝수 분석
-        예: 7, 17, 27은 끝수 7
-        """
         last_digits = [number % 10 for number in numbers]
         digit_counter = Counter(last_digits)
 
@@ -131,13 +112,7 @@ class PatternAnalyzer:
         }
 
     def get_consecutive_pattern(self, numbers):
-        """
-        연속번호 분석
-        예:
-        [1, 2, 10, 20, 21, 35] => 연속쌍 2개: (1,2), (20,21)
-        """
         numbers = sorted(numbers)
-
         consecutive_pairs = []
 
         for i in range(len(numbers) - 1):
@@ -151,9 +126,6 @@ class PatternAnalyzer:
         }
 
     def analyze_odd_even_distribution(self):
-        """
-        전체 회차 홀짝 비율 분포 분석
-        """
         draws = self.get_all_draws()
         counter = Counter()
 
@@ -164,9 +136,6 @@ class PatternAnalyzer:
         return self._to_sorted_distribution(counter)
 
     def analyze_low_high_distribution(self):
-        """
-        전체 회차 고저 비율 분포 분석
-        """
         draws = self.get_all_draws()
         counter = Counter()
 
@@ -177,9 +146,6 @@ class PatternAnalyzer:
         return self._to_sorted_distribution(counter)
 
     def analyze_sum_distribution(self):
-        """
-        전체 회차 번호합 구간 분포 분석
-        """
         draws = self.get_all_draws()
         counter = Counter()
 
@@ -190,9 +156,6 @@ class PatternAnalyzer:
         return self._to_sorted_distribution(counter)
 
     def analyze_last_digit_distribution(self):
-        """
-        전체 회차 끝수 분산 분석
-        """
         draws = self.get_all_draws()
 
         unique_digit_counter = Counter()
@@ -215,9 +178,6 @@ class PatternAnalyzer:
         }
 
     def analyze_consecutive_distribution(self):
-        """
-        전체 회차 연속번호 분포 분석
-        """
         draws = self.get_all_draws()
         counter = Counter()
 
@@ -228,9 +188,6 @@ class PatternAnalyzer:
         return self._to_sorted_distribution(counter)
 
     def analyze_all_patterns(self):
-        """
-        전체 패턴 분석 통합 결과
-        """
         return {
             "odd_even": self.analyze_odd_even_distribution(),
             "low_high": self.analyze_low_high_distribution(),
@@ -240,9 +197,6 @@ class PatternAnalyzer:
         }
 
     def get_recent_pattern_summary(self, limit=30):
-        """
-        최근 N회차 패턴 요약
-        """
         draws = self.get_all_draws()
         recent_draws = draws[-limit:]
 
@@ -258,9 +212,6 @@ class PatternAnalyzer:
         return result
 
     def _to_sorted_distribution(self, counter):
-        """
-        Counter 결과를 정렬된 리스트 형태로 변환
-        """
         total = sum(counter.values())
 
         return [
