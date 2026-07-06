@@ -7,7 +7,11 @@ from src.analyzer.pair_analyzer import PairAnalyzer
 from src.analyzer.triple_analyzer import TripleAnalyzer
 from src.analyzer.pattern_analyzer import PatternAnalyzer
 from src.analyzer.missing_number_analyzer import MissingNumberAnalyzer
-
+from src.analyzer.recommendation_config import (
+    RECOMMENDATION_WEIGHTS,
+    FINAL_RECOMMENDATION_SETTINGS,
+    RECOMMENDATION_CONDITIONS
+)
 
 class RecommendationEngine:
     def __init__(self, max_draw_no=None):
@@ -31,11 +35,11 @@ class RecommendationEngine:
 
         for number in range(1, 46):
             total_score = (
-                frequency_scores.get(number, 0) * 0.25 +
-                recent_30_scores.get(number, 0) * 0.20 +
-                recent_100_scores.get(number, 0) * 0.20 +
-                rising_scores.get(number, 0) * 0.15 +
-                missing_scores.get(number, 0) * 0.20
+                frequency_scores.get(number, 0) * RECOMMENDATION_WEIGHTS["frequency"] +
+                recent_30_scores.get(number, 0) * RECOMMENDATION_WEIGHTS["recent_30"] +
+                recent_100_scores.get(number, 0) * RECOMMENDATION_WEIGHTS["recent_100"] +
+                rising_scores.get(number, 0) * RECOMMENDATION_WEIGHTS["rising"] +
+                missing_scores.get(number, 0) * RECOMMENDATION_WEIGHTS["missing"]
             )
 
             result.append({
@@ -52,10 +56,10 @@ class RecommendationEngine:
 
     def generate_final_recommendations(self):
         return self.generate_recommendations(
-            set_count=5,
-            candidate_pool_size=35,
-            max_attempts=10000,
-            max_overlap_count=3
+            set_count=FINAL_RECOMMENDATION_SETTINGS["set_count"],
+            candidate_pool_size=FINAL_RECOMMENDATION_SETTINGS["candidate_pool_size"],
+            max_attempts=FINAL_RECOMMENDATION_SETTINGS["max_attempts"],
+            max_overlap_count=FINAL_RECOMMENDATION_SETTINGS["max_overlap_count"]
         )
 
     def generate_recommendations(
@@ -123,19 +127,19 @@ class RecommendationEngine:
         unique_digit_count = pattern["last_digit"]["unique_digit_count"]
         consecutive_pair_count = pattern["consecutive"]["pair_count"]
 
-        if odd_even_pattern not in ["3:3", "4:2", "2:4"]:
+        if odd_even_pattern not in RECOMMENDATION_CONDITIONS["allowed_odd_even_patterns"]:
             return False
 
-        if low_high_pattern not in ["3:3", "4:2", "2:4"]:
+        if low_high_pattern not in RECOMMENDATION_CONDITIONS["allowed_low_high_patterns"]:
             return False
 
-        if not 100 <= total_sum <= 170:
+        if not RECOMMENDATION_CONDITIONS["min_sum"] <= total_sum <= RECOMMENDATION_CONDITIONS["max_sum"]:
             return False
 
-        if unique_digit_count < 5:
+        if unique_digit_count < RECOMMENDATION_CONDITIONS["min_unique_digit_count"]:
             return False
 
-        if consecutive_pair_count > 1:
+        if consecutive_pair_count > RECOMMENDATION_CONDITIONS["max_consecutive_pair_count"]:
             return False
 
         return True
