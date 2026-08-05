@@ -9,241 +9,543 @@ from src.app.analysis_service import AnalysisService
 from src.app.backtest_service import BacktestService
 from src.gui.theme import AppTheme
 
+
 class MainWindow:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Lotto Analyzer (1.1.0)")
+        self.root.title(f"{AppTheme.APP_NAME} ({AppTheme.VERSION})")
         self.root.geometry(f"{AppTheme.WINDOW_WIDTH}x{AppTheme.WINDOW_HEIGHT}")
-        self.root.resizable(False, False)
-
-        self.bg_color = AppTheme.BACKGROUND
-        self.panel_color = AppTheme.PANEL
-        self.status_color = AppTheme.SURFACE
-
-        self.default_font = AppTheme.FONT_BODY
-        self.title_font = AppTheme.FONT_TITLE
-        self.subtitle_font = AppTheme.FONT_SUBTITLE
-        self.button_font = AppTheme.FONT_BUTTON
-        self.section_title_font = AppTheme.FONT_SECTION_TITLE
-        self.text_font = AppTheme.FONT_MONO
-
-        self.root.configure(bg=self.bg_color)
+        self.root.minsize(AppTheme.WINDOW_WIDTH, AppTheme.WINDOW_HEIGHT)
+        self.root.configure(bg=AppTheme.APP_BACKGROUND)
 
         self.recommendation_service = RecommendationService()
         self.draw_search_service = DrawSearchService()
         self.analysis_service = AnalysisService()
         self.backtest_service = BacktestService()
 
-        self.create_widgets()        
+        self.menu_buttons = {}
+        self.views = {}
+        self.current_view = None
+
+        self.create_widgets()
 
     def create_widgets(self):
         self.create_styles()
+        self.create_app_shell()
+        self.create_sidebar()
         self.create_header()
-        self.create_tabs()
+        self.create_content_area()
         self.create_status_bar()
+        self.create_views()
+        self.show_view("recommend")
 
     def create_styles(self):
         style = ttk.Style()
         style.theme_use("clam")
 
         style.configure(
-            "TNotebook",
-            background=AppTheme.BACKGROUND,
-            borderwidth=0,
-            tabmargins=(0, 0, 0, 0)
-        )
-
-        style.configure(
-            "TNotebook.Tab",
-            font=AppTheme.FONT_BODY_BOLD,
-            padding=AppTheme.TAB_PADDING,
-            background=AppTheme.SURFACE,
-            foreground=AppTheme.TEXT_SECONDARY,
-            borderwidth=0
-        )
-        style.map(
-            "TNotebook.Tab",
-            background=[
-                ("selected", AppTheme.PANEL),
-                ("active", AppTheme.PANEL_ALT)
-            ],
-            foreground=[
-                ("selected", AppTheme.TEXT_PRIMARY),
-                ("active", AppTheme.TEXT_PRIMARY)
-            ]
-        )
-
-        style.configure(
             "Primary.TButton",
             font=AppTheme.FONT_BUTTON,
-            padding=AppTheme.BUTTON_PADDING,
+            padding=(18, 10),
             background=AppTheme.PRIMARY,
-            foreground=AppTheme.TEXT_PRIMARY,
+            foreground=AppTheme.TEXT_INVERSE,
             borderwidth=0,
             focusthickness=0
         )
         style.map(
             "Primary.TButton",
             background=[
-                ("active", AppTheme.PRIMARY_ACTIVE),
-                ("pressed", AppTheme.PRIMARY_ACTIVE),
-                ("disabled", AppTheme.BORDER)
+                ("active", AppTheme.PRIMARY_HOVER),
+                ("pressed", AppTheme.PRIMARY_PRESSED),
+                ("disabled", "#B7C5DE")
             ],
-            foreground=[
-                ("disabled", AppTheme.TEXT_MUTED)
-            ]
+            foreground=[("disabled", "#EEF2F7")]
         )
 
         style.configure(
             "Secondary.TButton",
             font=AppTheme.FONT_BUTTON,
-            padding=(14, 7),
-            background=AppTheme.PANEL_ALT,
+            padding=(14, 8),
+            background=AppTheme.CARD_BACKGROUND,
             foreground=AppTheme.TEXT_PRIMARY,
-            borderwidth=0,
+            bordercolor=AppTheme.BORDER,
+            borderwidth=1,
             focusthickness=0
         )
         style.map(
             "Secondary.TButton",
-            background=[
-                ("active", AppTheme.BORDER),
-                ("pressed", AppTheme.BORDER)
-            ]
+            background=[("active", "#F7F9FC"), ("pressed", "#EEF2F7")]
         )
 
-    def create_section_header(self, parent, title, description):
-        header = tk.Frame(parent, bg=AppTheme.PANEL)
-        header.pack(fill="x", padx=AppTheme.CONTENT_PADDING, pady=(18, 8))
+    def create_app_shell(self):
+        self.app_shell = tk.Frame(self.root, bg=AppTheme.APP_BACKGROUND)
+        self.app_shell.pack(fill="both", expand=True)
 
-        tk.Label(
-            header,
-            text=title,
-            font=AppTheme.FONT_SECTION_TITLE,
-            fg=AppTheme.TEXT_PRIMARY,
-            bg=AppTheme.PANEL,
-            anchor="w"
-        ).pack(fill="x")
+        self.app_shell.grid_rowconfigure(1, weight=1)
+        self.app_shell.grid_columnconfigure(1, weight=1)
 
-        tk.Label(
-            header,
-            text=description,
-            font=AppTheme.FONT_SECTION_DESCRIPTION,
-            fg=AppTheme.TEXT_SECONDARY,
-            bg=AppTheme.PANEL,
-            anchor="w"
-        ).pack(fill="x", pady=(4, 0))
-
-    def apply_text_widget_theme(self, widget):
-        widget.configure(**AppTheme.text_widget_options())
-
-    def create_header(self):
-        header_frame = tk.Frame(self.root, bg=AppTheme.BACKGROUND)
-        header_frame.pack(
-            fill="x",
-            padx=AppTheme.WINDOW_PADDING_X,
-            pady=(AppTheme.HEADER_PADDING_Y, 8)
+    def create_sidebar(self):
+        self.sidebar = tk.Frame(
+            self.app_shell,
+            bg=AppTheme.SIDEBAR_BACKGROUND,
+            width=AppTheme.SIDEBAR_WIDTH
         )
+        self.sidebar.grid(row=0, column=0, rowspan=3, sticky="nsew")
+        self.sidebar.grid_propagate(False)
 
-        title_area = tk.Frame(header_frame, bg=AppTheme.BACKGROUND)
-        title_area.pack(side="left", fill="x", expand=True)
+        brand = tk.Frame(self.sidebar, bg=AppTheme.SIDEBAR_BACKGROUND)
+        brand.pack(fill="x", padx=20, pady=(24, 28))
 
         tk.Label(
-            title_area,
-            text="LOTTO ANALYZER",
-            font=self.title_font,
-            fg=AppTheme.TEXT_PRIMARY,
-            bg=AppTheme.BACKGROUND,
+            brand,
+            text="LA",
+            font=(AppTheme.FONT_FAMILY, 16, "bold"),
+            fg=AppTheme.TEXT_INVERSE,
+            bg=AppTheme.PRIMARY,
+            width=3,
+            height=1
+        ).pack(side="left")
+
+        brand_text = tk.Frame(brand, bg=AppTheme.SIDEBAR_BACKGROUND)
+        brand_text.pack(side="left", padx=(10, 0))
+
+        tk.Label(
+            brand_text,
+            text="LOTTO",
+            font=(AppTheme.FONT_FAMILY, 11, "bold"),
+            fg=AppTheme.TEXT_INVERSE,
+            bg=AppTheme.SIDEBAR_BACKGROUND,
             anchor="w"
-        ).pack(fill="x")
+        ).pack(anchor="w")
 
         tk.Label(
-            title_area,
-            text="과거 당첨 데이터 기반 통계 분석 후 추천번호를 생성합니다.",
-            font=self.subtitle_font,
-            fg=AppTheme.TEXT_SECONDARY,
-            bg=AppTheme.BACKGROUND,
+            brand_text,
+            text="ANALYZER",
+            font=(AppTheme.FONT_FAMILY, 8),
+            fg="#AAB5C8",
+            bg=AppTheme.SIDEBAR_BACKGROUND,
             anchor="w"
-        ).pack(fill="x", pady=(4, 0))
+        ).pack(anchor="w")
 
-        info_area = tk.Frame(header_frame, bg=AppTheme.BACKGROUND)
-        info_area.pack(side="right", anchor="e")
+        menu_items = [
+            ("recommend", "추천번호"),
+            ("analysis", "통계분석"),
+            ("backtest", "백테스트"),
+            ("draw_search", "회차조회"),
+            ("log", "시스템로그"),
+        ]
+
+        for key, label in menu_items:
+            button = tk.Button(
+                self.sidebar,
+                text=f"  {label}",
+                font=AppTheme.FONT_MENU,
+                fg="#C6CFDC",
+                bg=AppTheme.SIDEBAR_BACKGROUND,
+                activeforeground=AppTheme.TEXT_INVERSE,
+                activebackground=AppTheme.SIDEBAR_HOVER,
+                relief="flat",
+                bd=0,
+                anchor="w",
+                padx=22,
+                pady=13,
+                cursor="hand2",
+                command=lambda view_key=key: self.show_view(view_key)
+            )
+            button.pack(fill="x", padx=10, pady=2)
+            button.bind("<Enter>", lambda event, b=button, k=key: self.on_menu_enter(b, k))
+            button.bind("<Leave>", lambda event, b=button, k=key: self.on_menu_leave(b, k))
+            self.menu_buttons[key] = button
+
+        footer = tk.Frame(self.sidebar, bg=AppTheme.SIDEBAR_BACKGROUND)
+        footer.pack(side="bottom", fill="x", padx=20, pady=20)
 
         tk.Label(
-            info_area,
-            text="VERSION 1.1.0",
+            footer,
+            text=f"Version {AppTheme.VERSION}",
             font=AppTheme.FONT_SMALL,
-            fg=AppTheme.PRIMARY,
-            bg=AppTheme.BACKGROUND
-        ).pack(anchor="e")
+            fg="#7F8CA3",
+            bg=AppTheme.SIDEBAR_BACKGROUND,
+            anchor="w"
+        ).pack(fill="x")
 
         tk.Label(
-            info_area,
+            footer,
             text="Developer  Y.YB",
             font=AppTheme.FONT_SMALL,
-            fg=AppTheme.TEXT_MUTED,
-            bg=AppTheme.BACKGROUND
-        ).pack(anchor="e", pady=(4, 0))
+            fg="#7F8CA3",
+            bg=AppTheme.SIDEBAR_BACKGROUND,
+            anchor="w"
+        ).pack(fill="x", pady=(3, 0))
 
-    def create_tabs(self):
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill="both", expand=True, padx=AppTheme.WINDOW_PADDING_X, pady=(6, 12))
+    def create_header(self):
+        self.header = tk.Frame(
+            self.app_shell,
+            bg=AppTheme.HEADER_BACKGROUND,
+            height=78,
+            highlightthickness=1,
+            highlightbackground=AppTheme.BORDER
+        )
+        self.header.grid(row=0, column=1, sticky="ew")
+        self.header.grid_propagate(False)
 
-        self.recommend_tab = tk.Frame(self.notebook, bg=self.panel_color)
-        self.analysis_tab = tk.Frame(self.notebook, bg=self.panel_color)
-        self.backtest_tab = tk.Frame(self.notebook, bg=self.panel_color)
-        self.draw_search_tab = tk.Frame(self.notebook, bg=self.panel_color)
-        self.log_tab = tk.Frame(self.notebook, bg=self.panel_color)
+        title_area = tk.Frame(self.header, bg=AppTheme.HEADER_BACKGROUND)
+        title_area.pack(side="left", fill="both", expand=True, padx=26, pady=15)
 
-        self.notebook.add(self.recommend_tab, text="추천번호")
-        self.notebook.add(self.analysis_tab, text="통계분석")
-        self.notebook.add(self.backtest_tab, text="백테스트")
-        self.notebook.add(self.draw_search_tab, text="회차조회")
-        self.notebook.add(self.log_tab, text="시스템로그")
+        self.header_title = tk.Label(
+            title_area,
+            text="추천번호",
+            font=AppTheme.FONT_APP_TITLE,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.HEADER_BACKGROUND,
+            anchor="w"
+        )
+        self.header_title.pack(anchor="w")
 
-        self.create_recommend_tab()
-        self.create_analysis_tab()
-        self.create_backtest_tab()
-        self.create_draw_search_tab()
-        self.create_log_tab()
+        self.header_description = tk.Label(
+            title_area,
+            text="과거 당첨 데이터 기반 통계 분석 후 추천번호를 생성합니다.",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.HEADER_BACKGROUND,
+            anchor="w"
+        )
+        self.header_description.pack(anchor="w", pady=(4, 0))
 
-    def create_recommend_tab(self):
-        button_frame = tk.Frame(self.recommend_tab, bg=self.panel_color)
-        button_frame.pack(fill="x", pady=(18, 10))
+        info_area = tk.Frame(self.header, bg=AppTheme.HEADER_BACKGROUND)
+        info_area.pack(side="right", padx=26)
+
+        tk.Label(
+            info_area,
+            text="DATA READY",
+            font=(AppTheme.FONT_FAMILY, 8, "bold"),
+            fg=AppTheme.SUCCESS,
+            bg="#EAF8F2",
+            padx=10,
+            pady=5
+        ).pack()
+
+    def create_content_area(self):
+        self.content_area = tk.Frame(self.app_shell, bg=AppTheme.CONTENT_BACKGROUND)
+        self.content_area.grid(row=1, column=1, sticky="nsew")
+        self.content_area.grid_rowconfigure(0, weight=1)
+        self.content_area.grid_columnconfigure(0, weight=1)
+
+    def create_status_bar(self):
+        self.status_bar = tk.Label(
+            self.app_shell,
+            text="●  Lotto Analyzer 준비 완료 | DB 연결 정상",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.HEADER_BACKGROUND,
+            anchor="w",
+            padx=20,
+            pady=8,
+            highlightthickness=1,
+            highlightbackground=AppTheme.BORDER
+        )
+        self.status_bar.grid(row=2, column=1, sticky="ew")
+
+    def create_views(self):
+        self.create_recommend_view()
+        self.create_analysis_view()
+        self.create_backtest_view()
+        self.create_draw_search_view()
+        self.create_log_view()
+
+    def create_view_frame(self, key):
+        frame = tk.Frame(self.content_area, bg=AppTheme.CONTENT_BACKGROUND)
+        frame.grid(row=0, column=0, sticky="nsew")
+        frame.grid_rowconfigure(0, weight=1)
+        frame.grid_columnconfigure(0, weight=1)
+        self.views[key] = frame
+        return frame
+
+    def create_card(self, parent, title=None):
+        card = tk.Frame(
+            parent,
+            bg=AppTheme.CARD_BACKGROUND,
+            highlightthickness=1,
+            highlightbackground=AppTheme.BORDER
+        )
+        if title:
+            tk.Label(
+                card,
+                text=title,
+                font=AppTheme.FONT_CARD_TITLE,
+                fg=AppTheme.TEXT_PRIMARY,
+                bg=AppTheme.CARD_BACKGROUND,
+                anchor="w"
+            ).pack(fill="x", padx=AppTheme.CARD_PADDING, pady=(15, 8))
+        return card
+
+    def create_page_intro(self, parent, title, description):
+        area = tk.Frame(parent, bg=AppTheme.CONTENT_BACKGROUND)
+        area.pack(fill="x", pady=(0, 14))
+
+        tk.Label(
+            area,
+            text=title,
+            font=AppTheme.FONT_PAGE_TITLE,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CONTENT_BACKGROUND,
+            anchor="w"
+        ).pack(fill="x")
+
+        tk.Label(
+            area,
+            text=description,
+            font=AppTheme.FONT_BODY,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CONTENT_BACKGROUND,
+            anchor="w"
+        ).pack(fill="x", pady=(5, 0))
+
+    def configure_text_widget(self, widget):
+        widget.configure(**AppTheme.text_widget_options())
+
+    def create_recommend_view(self):
+        view = self.create_view_frame("recommend")
+        body = tk.Frame(view, bg=AppTheme.CONTENT_BACKGROUND)
+        body.pack(fill="both", expand=True, padx=24, pady=20)
+
+        self.create_page_intro(
+            body,
+            "최종 추천번호",
+            "저장된 과거 당첨 데이터를 종합 분석하여 추천번호 5세트를 생성합니다."
+        )
+
+        action_card = self.create_card(body)
+        action_card.pack(fill="x", pady=(0, 14))
+
+        action_info = tk.Frame(action_card, bg=AppTheme.CARD_BACKGROUND)
+        action_info.pack(side="left", fill="both", expand=True, padx=18, pady=15)
+
+        tk.Label(
+            action_info,
+            text="추천번호 생성",
+            font=AppTheme.FONT_CARD_TITLE,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        ).pack(anchor="w")
+
+        self.recommend_status_label = tk.Label(
+            action_info,
+            text="대기 중 · 분석 준비 완료",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        )
+        self.recommend_status_label.pack(anchor="w", pady=(5, 0))
 
         self.generate_button = ttk.Button(
-            button_frame,
-            text="최종 추천번호 5세트 생성",
+            action_card,
+            text="추천번호 생성",
             style="Primary.TButton",
             command=self.generate_recommendations
         )
-        self.generate_button.pack()
+        self.generate_button.pack(side="right", padx=18, pady=15)
 
-        self.recommend_status_label = tk.Label(
-            self.recommend_tab,
-            text="상태 : 대기",
-            font=self.default_font,
+        result_card = self.create_card(body, "분석 결과")
+        result_card.pack(fill="both", expand=True)
+
+        self.recommend_result_text = scrolledtext.ScrolledText(result_card, height=24)
+        self.recommend_result_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+        self.configure_text_widget(self.recommend_result_text)
+        self.recommend_result_text.insert(tk.END, "추천번호 생성 버튼을 눌러주세요.\n")
+
+    def create_analysis_view(self):
+        view = self.create_view_frame("analysis")
+        body = tk.Frame(view, bg=AppTheme.CONTENT_BACKGROUND)
+        body.pack(fill="both", expand=True, padx=24, pady=20)
+
+        self.create_page_intro(
+            body,
+            "통계분석",
+            "출현빈도, 추세, 동시 출현 조합, 장기 미출현 및 패턴 통계를 조회합니다."
+        )
+
+        action_card = self.create_card(body)
+        action_card.pack(fill="x", pady=(0, 14))
+        tk.Label(
+            action_card,
+            text="저장된 전체 회차를 기준으로 최신 통계 요약을 계산합니다.",
+            font=AppTheme.FONT_BODY,
             fg=AppTheme.TEXT_SECONDARY,
-            bg=self.panel_color,
-            anchor="w"
-        )
-        self.recommend_status_label.pack(fill="x", padx=15)
+            bg=AppTheme.CARD_BACKGROUND
+        ).pack(side="left", padx=18, pady=16)
 
-        self.recommend_result_text = scrolledtext.ScrolledText(
-            self.recommend_tab,
-            width=105,
-            height=28,
-            font=self.text_font,
-            relief="solid",
-            borderwidth=1
+        self.analysis_button = ttk.Button(
+            action_card,
+            text="통계분석 실행",
+            style="Primary.TButton",
+            command=self.run_analysis_summary
         )
-        self.recommend_result_text.pack(padx=15, pady=10)
-        self.apply_text_widget_theme(self.recommend_result_text)
+        self.analysis_button.pack(side="right", padx=18, pady=15)
 
-        self.recommend_result_text.insert(
+        result_card = self.create_card(body, "통계분석 결과")
+        result_card.pack(fill="both", expand=True)
+
+        self.analysis_text = scrolledtext.ScrolledText(result_card, height=24)
+        self.analysis_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+        self.configure_text_widget(self.analysis_text)
+        self.analysis_text.insert(tk.END, "통계분석 실행 버튼을 눌러주세요.\n")
+
+    def create_backtest_view(self):
+        view = self.create_view_frame("backtest")
+        body = tk.Frame(view, bg=AppTheme.CONTENT_BACKGROUND)
+        body.pack(fill="both", expand=True, padx=24, pady=20)
+
+        self.create_page_intro(
+            body,
+            "백테스트",
+            "각 대상 회차 이전 데이터만 사용하여 추천번호 생성 결과를 검증합니다."
+        )
+
+        action_card = self.create_card(body)
+        action_card.pack(fill="x", pady=(0, 14))
+        tk.Label(
+            action_card,
+            text="최근 10회 기준 최종 추천번호 백테스트를 실행합니다.",
+            font=AppTheme.FONT_BODY,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CARD_BACKGROUND
+        ).pack(side="left", padx=18, pady=16)
+
+        self.backtest_button = ttk.Button(
+            action_card,
+            text="백테스트 실행",
+            style="Primary.TButton",
+            command=self.run_backtest
+        )
+        self.backtest_button.pack(side="right", padx=18, pady=15)
+
+        result_card = self.create_card(body, "백테스트 결과")
+        result_card.pack(fill="both", expand=True)
+
+        self.backtest_text = scrolledtext.ScrolledText(result_card, height=24)
+        self.backtest_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+        self.configure_text_widget(self.backtest_text)
+        self.backtest_text.insert(
             tk.END,
-            "추천번호 생성 버튼을 눌러주세요.\n"
+            "최근 10회 기준 백테스트를 실행할 수 있습니다.\n\n"
+            "출력 항목\n- 평균 일치 개수\n- 최고 일치 개수\n- 번호 적중률\n"
+            "- 등수 및 일치 개수 분포\n- 점수 구간별 결과\n"
         )
-        
+
+    def create_draw_search_view(self):
+        view = self.create_view_frame("draw_search")
+        body = tk.Frame(view, bg=AppTheme.CONTENT_BACKGROUND)
+        body.pack(fill="both", expand=True, padx=24, pady=20)
+
+        self.create_page_intro(
+            body,
+            "회차조회",
+            "저장된 과거 당첨번호 데이터에서 특정 회차의 당첨번호를 조회합니다."
+        )
+
+        search_card = self.create_card(body, "회차 검색")
+        search_card.pack(fill="x", pady=(0, 14))
+
+        search_row = tk.Frame(search_card, bg=AppTheme.CARD_BACKGROUND)
+        search_row.pack(fill="x", padx=18, pady=(0, 18))
+
+        tk.Label(
+            search_row,
+            text="조회 회차",
+            font=AppTheme.FONT_BODY_BOLD,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CARD_BACKGROUND
+        ).pack(side="left")
+
+        self.draw_no_entry = tk.Entry(
+            search_row,
+            width=18,
+            font=AppTheme.FONT_BODY,
+            bg=AppTheme.INPUT_BACKGROUND,
+            fg=AppTheme.TEXT_PRIMARY,
+            insertbackground=AppTheme.TEXT_PRIMARY,
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground=AppTheme.BORDER,
+            highlightcolor=AppTheme.PRIMARY
+        )
+        self.draw_no_entry.pack(side="left", padx=(12, 8), ipady=7)
+        self.draw_no_entry.bind("<Return>", lambda event: self.search_draw_number())
+
+        search_button = ttk.Button(
+            search_row,
+            text="조회",
+            style="Primary.TButton",
+            command=self.search_draw_number
+        )
+        search_button.pack(side="left")
+
+        result_card = self.create_card(body, "당첨번호 조회 결과")
+        result_card.pack(fill="both", expand=True)
+
+        self.draw_search_text = scrolledtext.ScrolledText(result_card, height=23)
+        self.draw_search_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+        self.configure_text_widget(self.draw_search_text)
+        self.draw_search_text.insert(tk.END, "조회할 회차를 입력해주세요.\n")
+
+    def create_log_view(self):
+        view = self.create_view_frame("log")
+        body = tk.Frame(view, bg=AppTheme.CONTENT_BACKGROUND)
+        body.pack(fill="both", expand=True, padx=24, pady=20)
+
+        self.create_page_intro(
+            body,
+            "시스템로그",
+            "프로그램 실행 상태와 각 기능의 처리 내역을 시간순으로 확인합니다."
+        )
+
+        result_card = self.create_card(body, "실행 로그")
+        result_card.pack(fill="both", expand=True)
+
+        self.log_text = scrolledtext.ScrolledText(result_card, height=28)
+        self.log_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+        self.configure_text_widget(self.log_text)
+
+        self.add_log("프로그램 시작")
+        self.add_log("모던 GUI 디자인 시스템 초기화 완료")
+        self.add_log("화면 및 Service 연결 완료")
+
+    def show_view(self, key):
+        if key not in self.views:
+            return
+
+        self.current_view = key
+        self.views[key].tkraise()
+
+        page_info = {
+            "recommend": ("추천번호", "과거 당첨 데이터 기반 통계 분석 후 추천번호를 생성합니다."),
+            "analysis": ("통계분석", "과거 당첨 데이터의 주요 통계와 패턴을 확인합니다."),
+            "backtest": ("백테스트", "추천번호 생성 결과를 과거 회차 기준으로 검증합니다."),
+            "draw_search": ("회차조회", "특정 회차의 당첨번호와 보너스번호를 조회합니다."),
+            "log": ("시스템로그", "프로그램 실행 상태와 처리 내역을 확인합니다."),
+        }
+
+        title, description = page_info[key]
+        self.header_title.config(text=title)
+        self.header_description.config(text=description)
+
+        for menu_key, button in self.menu_buttons.items():
+            if menu_key == key:
+                button.config(bg=AppTheme.SIDEBAR_ACTIVE, fg=AppTheme.TEXT_INVERSE)
+            else:
+                button.config(bg=AppTheme.SIDEBAR_BACKGROUND, fg="#C6CFDC")
+
+    def on_menu_enter(self, button, key):
+        if self.current_view != key:
+            button.config(bg=AppTheme.SIDEBAR_HOVER, fg=AppTheme.TEXT_INVERSE)
+
+    def on_menu_leave(self, button, key):
+        if self.current_view != key:
+            button.config(bg=AppTheme.SIDEBAR_BACKGROUND, fg="#C6CFDC")
+
     def run_analysis_summary(self):
         self.analysis_button.config(state="disabled")
         self.set_status("통계분석 실행 중...")
@@ -388,220 +690,13 @@ class MainWindow:
             f"통계분석 중 오류가 발생했습니다.\n\n{error}"
         )
 
-    def create_analysis_tab(self):
-        title_label = tk.Label(
-            self.analysis_tab,
-            text="통계분석",
-            font=self.section_title_font,
-            fg=AppTheme.TEXT_PRIMARY,
-            bg=self.panel_color
-        )
-        title_label.pack(pady=(20, 8))
-
-        description_label = tk.Label(
-            self.analysis_tab,
-            text="과거 당첨 데이터를 기준으로 주요 통계분석 결과를 조회합니다.",
-            font=self.default_font,
-            fg=AppTheme.TEXT_SECONDARY,
-            bg=self.panel_color
-        )
-        description_label.pack(pady=5)
-
-        button_frame = tk.Frame(self.analysis_tab, bg=self.panel_color)
-        button_frame.pack(pady=10)
-
-        self.analysis_button = ttk.Button(
-            button_frame,
-            text="통계분석 실행",
-            style="Primary.TButton",
-            command=self.run_analysis_summary
-        )
-        self.analysis_button.pack()
-
-        self.analysis_text = scrolledtext.ScrolledText(
-            self.analysis_tab,
-            width=105,
-            height=25,
-            font=self.text_font,
-            relief="solid",
-            borderwidth=1
-        )
-        self.analysis_text.pack(padx=15, pady=10)
-        self.apply_text_widget_theme(self.analysis_text)
-
-        self.analysis_text.insert(
-            tk.END,
-            "통계분석 실행 버튼을 눌러주세요.\n"
-        )
-
-    def create_backtest_tab(self):
-        title_label = tk.Label(
-            self.backtest_tab,
-            text="백테스트",
-            font=self.section_title_font,
-            fg=AppTheme.TEXT_PRIMARY,
-            bg=self.panel_color
-        )
-        title_label.pack(pady=(25, 10))
-
-        description_label = tk.Label(
-            self.backtest_tab,
-            text="최근 회차 기준 추천번호 성능을 검증하는 백테스트 결과를 표시할 예정입니다.",
-            font=self.default_font,
-            fg=AppTheme.TEXT_SECONDARY,
-            bg=self.panel_color
-        )
-        description_label.pack(pady=5)
-
-        button_frame = tk.Frame(
-            self.backtest_tab,
-            bg=self.panel_color
-        )
-        button_frame.pack(pady=10)
-
-        self.backtest_button = ttk.Button(
-            button_frame,
-            text="최근 10회 백테스트 실행",
-            style="Primary.TButton",
-            command=self.run_backtest
-        )
-        self.backtest_button.pack()
-
-        self.backtest_text = scrolledtext.ScrolledText(
-            self.backtest_tab,
-            width=105,
-            height=25,
-            font=self.text_font,
-            relief="solid",
-            borderwidth=1
-        )
-        self.backtest_text.pack(padx=15, pady=10)
-        self.apply_text_widget_theme(self.backtest_text)
-
-        self.backtest_text.insert(
-            tk.END,
-            "최근 10회 기준 최종 추천번호 백테스트를 실행할 수 있습니다.\n\n"
-            "출력 항목\n"
-            "- 평균 일치 개수\n"
-            "- 최고 일치 개수\n"
-            "- 번호 적중률\n"
-            "- 등수 및 일치 개수 분포\n"
-            "- 점수 구간별 결과\n"
-        )
-
-    def create_draw_search_tab(self):
-        title_label = tk.Label(
-            self.draw_search_tab,
-            text="회차조회",
-            font=self.section_title_font,
-            fg=AppTheme.TEXT_PRIMARY,
-            bg=self.panel_color
-        )
-        title_label.pack(pady=(25, 10))
-
-        description_label = tk.Label(
-            self.draw_search_tab,
-            text="특정 회차의 당첨번호를 조회하는 기능을 추가할 예정입니다.",
-            font=self.default_font,
-            fg=AppTheme.TEXT_SECONDARY,
-            bg=self.panel_color
-        )
-        description_label.pack(pady=5)
-
-        search_frame = tk.Frame(self.draw_search_tab, bg=self.panel_color)
-        search_frame.pack(pady=20)
-
-        tk.Label(
-            search_frame,
-            text="회차 입력",
-            font=self.default_font,
-            fg=AppTheme.TEXT_SECONDARY,
-            bg=self.panel_color
-        ).pack(side="left", padx=5)
-
-        self.draw_no_entry = tk.Entry(
-            search_frame,
-            width=15,
-            font=self.default_font,
-            bg=AppTheme.INPUT_BACKGROUND,
-            fg=AppTheme.TEXT_PRIMARY,
-            insertbackground=AppTheme.TEXT_PRIMARY,
-            relief="flat",
-            highlightthickness=1,
-            highlightbackground=AppTheme.BORDER,
-            highlightcolor=AppTheme.PRIMARY
-        )
-        self.draw_no_entry.pack(side="left", padx=5)
-
-        search_button = ttk.Button(
-            search_frame,
-            text="조회",
-            style="Secondary.TButton",
-            command=self.search_draw_number
-        )
-        search_button.pack(side="left", padx=5)
-
-        self.draw_search_text = scrolledtext.ScrolledText(
-            self.draw_search_tab,
-            width=105,
-            height=24,
-            font=self.text_font,
-            relief="solid",
-            borderwidth=1
-        )
-        self.draw_search_text.pack(padx=15, pady=10)
-        self.apply_text_widget_theme(self.draw_search_text)
-
-        self.draw_search_text.insert(
-            tk.END,
-            "회차조회 탭 준비 완료\n\n"            
-        )
-
-    def create_log_tab(self):
-        title_label = tk.Label(
-            self.log_tab,
-            text="시스템로그",
-            font=self.section_title_font,
-            fg=AppTheme.TEXT_PRIMARY,
-            bg=self.panel_color
-        )
-        title_label.pack(pady=(20, 10))
-
-        self.log_text = scrolledtext.ScrolledText(
-            self.log_tab,
-            width=105,
-            height=31,
-            font=AppTheme.FONT_MONO,
-            relief="solid",
-            borderwidth=1
-        )
-        self.log_text.pack(padx=15, pady=10)
-        self.apply_text_widget_theme(self.log_text)
-
-        self.add_log("프로그램 시작")
-        self.add_log("GUI 스타일 초기화 완료")
-        self.add_log("탭 화면 초기화 완료")
-
-    def create_status_bar(self):
-        self.status_bar = tk.Label(
-            self.root,
-            text="Lotto Analyzer 준비 완료 | DB 연결 정상 | Developer : Y.YB",
-            font=AppTheme.FONT_SMALL,
-            fg=AppTheme.TEXT_SECONDARY,
-            bg=self.status_color,
-            anchor="w",
-            padx=AppTheme.WINDOW_PADDING_X,
-            pady=7
-        )
-        self.status_bar.pack(fill="x", side="bottom")
-
     def set_status(self, message):
         self.status_bar.config(text=message)
         self.root.update_idletasks()
 
     def generate_recommendations(self):
         self.generate_button.config(state="disabled")
-        self.recommend_status_label.config(text="상태 : 추천번호 생성 중...")
+        self.recommend_status_label.config(text="분석 중 · 추천번호를 생성하고 있습니다.", fg=AppTheme.PRIMARY)
         self.set_status("추천번호 생성 중...")
         self.add_log("추천번호 생성 시작")
 
@@ -653,13 +748,13 @@ class MainWindow:
         )
 
         self.generate_button.config(state="normal")
-        self.recommend_status_label.config(text="상태 : 추천번호 생성 완료")
+        self.recommend_status_label.config(text="완료 · 추천번호 생성이 완료되었습니다.", fg=AppTheme.SUCCESS)
         self.set_status("추천번호 생성 완료 | Lotto Analyzer 정상 동작 중")
         self.add_log("추천번호 생성 완료")
 
     def _handle_recommendation_error(self, error):
         self.generate_button.config(state="normal")
-        self.recommend_status_label.config(text="상태 : 오류 발생")
+        self.recommend_status_label.config(text="오류 · 추천번호 생성에 실패했습니다.", fg=AppTheme.ERROR)
         self.set_status("추천번호 생성 오류 발생")
         self.add_log(f"추천번호 생성 오류 [{type(error).__name__}]: {error}")
         messagebox.showerror(
@@ -737,7 +832,7 @@ class MainWindow:
 
     def run(self):
         self.root.mainloop()
-        
+
     def run_backtest(self):
         self.backtest_button.config(state="disabled")
         self.set_status("백테스트 실행 중...")
