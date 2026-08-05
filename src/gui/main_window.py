@@ -5,6 +5,7 @@ from datetime import datetime
 from src.app.recommendation_service import RecommendationService
 from src.app.draw_search_service import DrawSearchService
 from src.app.analysis_service import AnalysisService
+from src.app.backtest_service import BacktestService
 
 class MainWindow:
     def __init__(self):
@@ -29,6 +30,7 @@ class MainWindow:
         self.recommendation_service = RecommendationService()
         self.draw_search_service = DrawSearchService()
         self.analysis_service = AnalysisService()
+        self.backtest_service = BacktestService()
 
         self.create_widgets()        
 
@@ -352,6 +354,18 @@ class MainWindow:
             "- 번호 적중률\n"
             "- 일치 개수 분포\n"
         )
+        button_frame = tk.Frame(
+            self.backtest_tab,
+            bg=self.panel_color
+        )
+        button_frame.pack()
+
+        ttk.Button(
+            button_frame,
+            text="최근 10회 백테스트 실행",
+            style="Primary.TButton",
+            command=self.run_backtest
+        ).pack(pady=10)
 
     def create_draw_search_tab(self):
         title_label = tk.Label(
@@ -562,4 +576,140 @@ class MainWindow:
     def run(self):
         self.root.mainloop()
         
+    def run_backtest(self):
+
+        try:
+
+            self.set_status("백테스트 실행 중...")
+            self.add_log("백테스트 시작")
+
+            self.backtest_text.delete("1.0", tk.END)
+
+            data = self.backtest_service.run_backtest(10)
+
+            summary = data["summary"]
+
+            self.backtest_text.insert(
+                tk.END,
+                "=" * 90 + "\n"
+            )
+
+            self.backtest_text.insert(
+                tk.END,
+                "                 백테스트 결과\n"
+            )
+
+            self.backtest_text.insert(
+                tk.END,
+                "=" * 90 + "\n\n"
+            )
+
+            self.backtest_text.insert(
+                tk.END,
+                f"테스트 회차 : {summary['test_count']}회\n"
+            )
+
+            self.backtest_text.insert(
+                tk.END,
+                f"추천번호 개수 : {summary['total_recommendation_count']}개\n"
+            )
+
+            self.backtest_text.insert(
+                tk.END,
+                f"평균 일치 개수 : {summary['average_match_count']}\n"
+            )
+
+            self.backtest_text.insert(
+                tk.END,
+                f"최고 일치 개수 : {summary['max_match_count']}\n"
+            )
+
+            self.backtest_text.insert(
+                tk.END,
+                f"최고 추천 평균 일치 : {summary['best_average_match_count']}\n"
+            )
+
+            self.backtest_text.insert(
+                tk.END,
+                f"번호 적중률 : {summary['number_hit_rate']}%\n\n"
+            )
+
+            self.backtest_text.insert(
+                tk.END,
+                "[등수 분포]\n"
+            )
+
+            for rank, count in summary["rank_counts"].items():
+
+                self.backtest_text.insert(
+                    tk.END,
+                    f"{rank} : {count}\n"
+                )
+
+            self.backtest_text.insert(
+                tk.END,
+                "\n[일치 개수 분포]\n"
+            )
+
+            for match, count in summary["match_count_distribution"].items():
+
+                self.backtest_text.insert(
+                    tk.END,
+                    f"{match}개 일치 : {count}\n"
+                )
+
+            self.backtest_text.insert(
+                tk.END,
+                "\n[점수 구간 성공률]\n"
+            )
+
+            for score, stat in summary["score_range_stats"].items():
+
+                self.backtest_text.insert(
+                    tk.END,
+                    f"{score}점\n"
+                )
+
+                self.backtest_text.insert(
+                    tk.END,
+                    f"  추천개수 : {stat['count']}\n"
+                )
+
+                self.backtest_text.insert(
+                    tk.END,
+                    f"  평균일치 : {stat['average_match_count']}\n"
+                )
+
+                self.backtest_text.insert(
+                    tk.END,
+                    f"  최고일치 : {stat['max_match_count']}\n"
+                )
+
+                self.backtest_text.insert(
+                    tk.END,
+                    f"  3개이상 적중 : {stat['three_or_more_count']}\n\n"
+                )
+
+            self.set_status(
+                "백테스트 완료"
+            )
+
+            self.add_log(
+                "백테스트 완료"
+            )
+
+        except Exception as e:
+
+            self.set_status(
+                "백테스트 오류"
+            )
+
+            self.add_log(
+                f"백테스트 오류 : {e}"
+            )
+
+            messagebox.showerror(
+                "오류",
+                str(e)
+            )        
     
