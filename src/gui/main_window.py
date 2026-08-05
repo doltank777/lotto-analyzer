@@ -7,24 +7,25 @@ from src.app.recommendation_service import RecommendationService
 from src.app.draw_search_service import DrawSearchService
 from src.app.analysis_service import AnalysisService
 from src.app.backtest_service import BacktestService
+from src.gui.theme import AppTheme
 
 class MainWindow:
     def __init__(self):
         self.root = tk.Tk()
-        self.root.title("Lotto Analyzer (1.0.4)")
-        self.root.geometry("940x760")
+        self.root.title("Lotto Analyzer (1.1.0)")
+        self.root.geometry(f"{AppTheme.WINDOW_WIDTH}x{AppTheme.WINDOW_HEIGHT}")
         self.root.resizable(False, False)
 
-        self.bg_color = "#f5f6f8"
-        self.panel_color = "#ffffff"
-        self.status_color = "#eceff3"
+        self.bg_color = AppTheme.BACKGROUND
+        self.panel_color = AppTheme.PANEL
+        self.status_color = AppTheme.SURFACE
 
-        self.default_font = ("맑은 고딕", 10)
-        self.title_font = ("맑은 고딕", 24, "bold")
-        self.subtitle_font = ("맑은 고딕", 11)
-        self.button_font = ("맑은 고딕", 12, "bold")
-        self.section_title_font = ("맑은 고딕", 16, "bold")
-        self.text_font = ("Consolas", 11)
+        self.default_font = AppTheme.FONT_BODY
+        self.title_font = AppTheme.FONT_TITLE
+        self.subtitle_font = AppTheme.FONT_SUBTITLE
+        self.button_font = AppTheme.FONT_BUTTON
+        self.section_title_font = AppTheme.FONT_SECTION_TITLE
+        self.text_font = AppTheme.FONT_MONO
 
         self.root.configure(bg=self.bg_color)
 
@@ -43,57 +44,149 @@ class MainWindow:
 
     def create_styles(self):
         style = ttk.Style()
+        style.theme_use("clam")
 
         style.configure(
             "TNotebook",
-            background=self.bg_color,
-            borderwidth=0
+            background=AppTheme.BACKGROUND,
+            borderwidth=0,
+            tabmargins=(0, 0, 0, 0)
         )
 
         style.configure(
             "TNotebook.Tab",
-            font=("맑은 고딕", 10, "bold"),
-            padding=(45, 10)
+            font=AppTheme.FONT_BODY_BOLD,
+            padding=AppTheme.TAB_PADDING,
+            background=AppTheme.SURFACE,
+            foreground=AppTheme.TEXT_SECONDARY,
+            borderwidth=0
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[
+                ("selected", AppTheme.PANEL),
+                ("active", AppTheme.PANEL_ALT)
+            ],
+            foreground=[
+                ("selected", AppTheme.TEXT_PRIMARY),
+                ("active", AppTheme.TEXT_PRIMARY)
+            ]
         )
 
         style.configure(
             "Primary.TButton",
-            font=self.button_font,
-            padding=(15, 8)
+            font=AppTheme.FONT_BUTTON,
+            padding=AppTheme.BUTTON_PADDING,
+            background=AppTheme.PRIMARY,
+            foreground=AppTheme.TEXT_PRIMARY,
+            borderwidth=0,
+            focusthickness=0
         )
+        style.map(
+            "Primary.TButton",
+            background=[
+                ("active", AppTheme.PRIMARY_ACTIVE),
+                ("pressed", AppTheme.PRIMARY_ACTIVE),
+                ("disabled", AppTheme.BORDER)
+            ],
+            foreground=[
+                ("disabled", AppTheme.TEXT_MUTED)
+            ]
+        )
+
+        style.configure(
+            "Secondary.TButton",
+            font=AppTheme.FONT_BUTTON,
+            padding=(14, 7),
+            background=AppTheme.PANEL_ALT,
+            foreground=AppTheme.TEXT_PRIMARY,
+            borderwidth=0,
+            focusthickness=0
+        )
+        style.map(
+            "Secondary.TButton",
+            background=[
+                ("active", AppTheme.BORDER),
+                ("pressed", AppTheme.BORDER)
+            ]
+        )
+
+    def create_section_header(self, parent, title, description):
+        header = tk.Frame(parent, bg=AppTheme.PANEL)
+        header.pack(fill="x", padx=AppTheme.CONTENT_PADDING, pady=(18, 8))
+
+        tk.Label(
+            header,
+            text=title,
+            font=AppTheme.FONT_SECTION_TITLE,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.PANEL,
+            anchor="w"
+        ).pack(fill="x")
+
+        tk.Label(
+            header,
+            text=description,
+            font=AppTheme.FONT_SECTION_DESCRIPTION,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.PANEL,
+            anchor="w"
+        ).pack(fill="x", pady=(4, 0))
+
+    def apply_text_widget_theme(self, widget):
+        widget.configure(**AppTheme.text_widget_options())
 
     def create_header(self):
-        header_frame = tk.Frame(self.root, bg=self.bg_color)
-        header_frame.pack(fill="x", pady=(18, 5))
-
-        title_label = tk.Label(
-            header_frame,
-            text="로또 분석기 (Lotto Analyzer)",
-            font=self.title_font,
-            bg=self.bg_color
+        header_frame = tk.Frame(self.root, bg=AppTheme.BACKGROUND)
+        header_frame.pack(
+            fill="x",
+            padx=AppTheme.WINDOW_PADDING_X,
+            pady=(AppTheme.HEADER_PADDING_Y, 8)
         )
-        title_label.pack()
 
-        description_label = tk.Label(
-            header_frame,
+        title_area = tk.Frame(header_frame, bg=AppTheme.BACKGROUND)
+        title_area.pack(side="left", fill="x", expand=True)
+
+        tk.Label(
+            title_area,
+            text="LOTTO ANALYZER",
+            font=self.title_font,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.BACKGROUND,
+            anchor="w"
+        ).pack(fill="x")
+
+        tk.Label(
+            title_area,
             text="과거 당첨 데이터 기반 통계 분석 후 추천번호를 생성합니다.",
             font=self.subtitle_font,
-            bg=self.bg_color
-        )
-        description_label.pack(pady=(3, 0))
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.BACKGROUND,
+            anchor="w"
+        ).pack(fill="x", pady=(4, 0))
 
-        developer_label = tk.Label(
-            header_frame,
-            text="Developer : Y.YB",
-            font=("맑은 고딕", 9),
-            fg="gray",
-            bg=self.bg_color
-        )
-        developer_label.pack(pady=(2, 5))
+        info_area = tk.Frame(header_frame, bg=AppTheme.BACKGROUND)
+        info_area.pack(side="right", anchor="e")
+
+        tk.Label(
+            info_area,
+            text="VERSION 1.1.0",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.PRIMARY,
+            bg=AppTheme.BACKGROUND
+        ).pack(anchor="e")
+
+        tk.Label(
+            info_area,
+            text="Developer  Y.YB",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_MUTED,
+            bg=AppTheme.BACKGROUND
+        ).pack(anchor="e", pady=(4, 0))
 
     def create_tabs(self):
         self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill="both", expand=True, padx=15, pady=10)
+        self.notebook.pack(fill="both", expand=True, padx=AppTheme.WINDOW_PADDING_X, pady=(6, 12))
 
         self.recommend_tab = tk.Frame(self.notebook, bg=self.panel_color)
         self.analysis_tab = tk.Frame(self.notebook, bg=self.panel_color)
@@ -129,6 +222,7 @@ class MainWindow:
             self.recommend_tab,
             text="상태 : 대기",
             font=self.default_font,
+            fg=AppTheme.TEXT_SECONDARY,
             bg=self.panel_color,
             anchor="w"
         )
@@ -143,6 +237,7 @@ class MainWindow:
             borderwidth=1
         )
         self.recommend_result_text.pack(padx=15, pady=10)
+        self.apply_text_widget_theme(self.recommend_result_text)
 
         self.recommend_result_text.insert(
             tk.END,
@@ -298,6 +393,7 @@ class MainWindow:
             self.analysis_tab,
             text="통계분석",
             font=self.section_title_font,
+            fg=AppTheme.TEXT_PRIMARY,
             bg=self.panel_color
         )
         title_label.pack(pady=(20, 8))
@@ -306,6 +402,7 @@ class MainWindow:
             self.analysis_tab,
             text="과거 당첨 데이터를 기준으로 주요 통계분석 결과를 조회합니다.",
             font=self.default_font,
+            fg=AppTheme.TEXT_SECONDARY,
             bg=self.panel_color
         )
         description_label.pack(pady=5)
@@ -330,6 +427,7 @@ class MainWindow:
             borderwidth=1
         )
         self.analysis_text.pack(padx=15, pady=10)
+        self.apply_text_widget_theme(self.analysis_text)
 
         self.analysis_text.insert(
             tk.END,
@@ -341,6 +439,7 @@ class MainWindow:
             self.backtest_tab,
             text="백테스트",
             font=self.section_title_font,
+            fg=AppTheme.TEXT_PRIMARY,
             bg=self.panel_color
         )
         title_label.pack(pady=(25, 10))
@@ -349,6 +448,7 @@ class MainWindow:
             self.backtest_tab,
             text="최근 회차 기준 추천번호 성능을 검증하는 백테스트 결과를 표시할 예정입니다.",
             font=self.default_font,
+            fg=AppTheme.TEXT_SECONDARY,
             bg=self.panel_color
         )
         description_label.pack(pady=5)
@@ -376,6 +476,7 @@ class MainWindow:
             borderwidth=1
         )
         self.backtest_text.pack(padx=15, pady=10)
+        self.apply_text_widget_theme(self.backtest_text)
 
         self.backtest_text.insert(
             tk.END,
@@ -393,6 +494,7 @@ class MainWindow:
             self.draw_search_tab,
             text="회차조회",
             font=self.section_title_font,
+            fg=AppTheme.TEXT_PRIMARY,
             bg=self.panel_color
         )
         title_label.pack(pady=(25, 10))
@@ -401,6 +503,7 @@ class MainWindow:
             self.draw_search_tab,
             text="특정 회차의 당첨번호를 조회하는 기능을 추가할 예정입니다.",
             font=self.default_font,
+            fg=AppTheme.TEXT_SECONDARY,
             bg=self.panel_color
         )
         description_label.pack(pady=5)
@@ -412,19 +515,28 @@ class MainWindow:
             search_frame,
             text="회차 입력",
             font=self.default_font,
+            fg=AppTheme.TEXT_SECONDARY,
             bg=self.panel_color
         ).pack(side="left", padx=5)
 
         self.draw_no_entry = tk.Entry(
             search_frame,
             width=15,
-            font=self.default_font
+            font=self.default_font,
+            bg=AppTheme.INPUT_BACKGROUND,
+            fg=AppTheme.TEXT_PRIMARY,
+            insertbackground=AppTheme.TEXT_PRIMARY,
+            relief="flat",
+            highlightthickness=1,
+            highlightbackground=AppTheme.BORDER,
+            highlightcolor=AppTheme.PRIMARY
         )
         self.draw_no_entry.pack(side="left", padx=5)
 
         search_button = ttk.Button(
             search_frame,
             text="조회",
+            style="Secondary.TButton",
             command=self.search_draw_number
         )
         search_button.pack(side="left", padx=5)
@@ -438,6 +550,7 @@ class MainWindow:
             borderwidth=1
         )
         self.draw_search_text.pack(padx=15, pady=10)
+        self.apply_text_widget_theme(self.draw_search_text)
 
         self.draw_search_text.insert(
             tk.END,
@@ -449,6 +562,7 @@ class MainWindow:
             self.log_tab,
             text="시스템로그",
             font=self.section_title_font,
+            fg=AppTheme.TEXT_PRIMARY,
             bg=self.panel_color
         )
         title_label.pack(pady=(20, 10))
@@ -457,11 +571,12 @@ class MainWindow:
             self.log_tab,
             width=105,
             height=31,
-            font=("Consolas", 10),
+            font=AppTheme.FONT_MONO,
             relief="solid",
             borderwidth=1
         )
         self.log_text.pack(padx=15, pady=10)
+        self.apply_text_widget_theme(self.log_text)
 
         self.add_log("프로그램 시작")
         self.add_log("GUI 스타일 초기화 완료")
@@ -471,10 +586,12 @@ class MainWindow:
         self.status_bar = tk.Label(
             self.root,
             text="Lotto Analyzer 준비 완료 | DB 연결 정상 | Developer : Y.YB",
-            font=("맑은 고딕", 9),
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
             bg=self.status_color,
             anchor="w",
-            padx=10
+            padx=AppTheme.WINDOW_PADDING_X,
+            pady=7
         )
         self.status_bar.pack(fill="x", side="bottom")
 
