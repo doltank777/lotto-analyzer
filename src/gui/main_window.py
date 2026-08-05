@@ -8,6 +8,13 @@ from src.app.draw_search_service import DrawSearchService
 from src.app.analysis_service import AnalysisService
 from src.app.backtest_service import BacktestService
 from src.gui.theme import AppTheme
+from src.gui.components import (
+    AppCard,
+    EmptyState,
+    LottoBall,
+    MetricBadge,
+    create_indeterminate_progress,
+)
 
 
 class MainWindow:
@@ -272,22 +279,7 @@ class MainWindow:
         return frame
 
     def create_card(self, parent, title=None):
-        card = tk.Frame(
-            parent,
-            bg=AppTheme.CARD_BACKGROUND,
-            highlightthickness=1,
-            highlightbackground=AppTheme.BORDER
-        )
-        if title:
-            tk.Label(
-                card,
-                text=title,
-                font=AppTheme.FONT_CARD_TITLE,
-                fg=AppTheme.TEXT_PRIMARY,
-                bg=AppTheme.CARD_BACKGROUND,
-                anchor="w"
-            ).pack(fill="x", padx=AppTheme.CARD_PADDING, pady=(15, 8))
-        return card
+        return AppCard(parent, title=title)
 
     def create_page_intro(self, parent, title, description):
         area = tk.Frame(parent, bg=AppTheme.CONTENT_BACKGROUND)
@@ -358,9 +350,8 @@ class MainWindow:
         )
         self.generate_button.pack(side="right", padx=18, pady=15)
 
-        self.recommend_progress = ttk.Progressbar(
+        self.recommend_progress = create_indeterminate_progress(
             body,
-            mode="indeterminate",
             style="Recommendation.Horizontal.TProgressbar"
         )
 
@@ -424,100 +415,24 @@ class MainWindow:
     def show_recommend_empty_state(self, message="추천번호 생성 버튼을 눌러주세요."):
         self.clear_recommendation_cards()
 
-        empty_frame = tk.Frame(
+        empty_state = EmptyState(
             self.recommend_cards_frame,
-            bg=AppTheme.CARD_BACKGROUND
+            message=message,
+            description=(
+                "과거 당첨 데이터의 출현빈도, 추세, 조합 및 패턴을 "
+                "종합 분석합니다."
+            ),
+            icon_text="6"
         )
-        empty_frame.pack(fill="both", expand=True, pady=105)
-
-        icon_canvas = tk.Canvas(
-            empty_frame,
-            width=64,
-            height=64,
-            bg=AppTheme.CARD_BACKGROUND,
-            highlightthickness=0
-        )
-        icon_canvas.pack()
-        icon_canvas.create_oval(
-            7, 7, 57, 57,
-            fill=AppTheme.EMPTY_ICON_BACKGROUND,
-            outline=""
-        )
-        icon_canvas.create_text(
-            32, 32,
-            text="6",
-            font=(AppTheme.FONT_FAMILY, 18, "bold"),
-            fill=AppTheme.PRIMARY
-        )
-
-        tk.Label(
-            empty_frame,
-            text=message,
-            font=AppTheme.FONT_BODY_BOLD,
-            fg=AppTheme.TEXT_PRIMARY,
-            bg=AppTheme.CARD_BACKGROUND
-        ).pack(pady=(12, 4))
-
-        tk.Label(
-            empty_frame,
-            text="과거 당첨 데이터의 출현빈도, 추세, 조합 및 패턴을 종합 분석합니다.",
-            font=AppTheme.FONT_SMALL,
-            fg=AppTheme.TEXT_SECONDARY,
-            bg=AppTheme.CARD_BACKGROUND
-        ).pack()
+        empty_state.pack(fill="both", expand=True, pady=105)
 
     def create_lotto_ball(self, parent, number):
-        color = AppTheme.get_lotto_ball_color(number)
-        canvas = tk.Canvas(
-            parent,
-            width=52,
-            height=52,
-            bg=AppTheme.CARD_BACKGROUND,
-            highlightthickness=0
-        )
-        canvas.pack(side="left", padx=(0, 10))
-
-        canvas.create_oval(
-            3, 4, 49, 50,
-            fill=AppTheme.BALL_SHADOW,
-            outline=""
-        )
-        canvas.create_oval(
-            2, 2, 48, 48,
-            fill=color,
-            outline=""
-        )
-        canvas.create_oval(
-            9, 7, 23, 16,
-            fill=AppTheme.BALL_HIGHLIGHT,
-            outline=""
-        )
-        canvas.create_text(
-            25, 25,
-            text=f"{number:02d}",
-            font=(AppTheme.FONT_FAMILY, 11, "bold"),
-            fill=AppTheme.TEXT_INVERSE
-        )
+        ball = LottoBall(parent, number)
+        ball.pack(side="left", padx=(0, 10))
 
     def create_metric(self, parent, label, value):
-        metric = tk.Frame(parent, bg=AppTheme.METRIC_BACKGROUND)
+        metric = MetricBadge(parent, label, value)
         metric.pack(side="left", padx=(0, 8), ipadx=10, ipady=5)
-
-        tk.Label(
-            metric,
-            text=label,
-            font=(AppTheme.FONT_FAMILY, 8),
-            fg=AppTheme.TEXT_SECONDARY,
-            bg=AppTheme.METRIC_BACKGROUND
-        ).pack(side="left")
-
-        tk.Label(
-            metric,
-            text=str(value),
-            font=(AppTheme.FONT_FAMILY, 9, "bold"),
-            fg=AppTheme.TEXT_PRIMARY,
-            bg=AppTheme.METRIC_BACKGROUND
-        ).pack(side="left", padx=(7, 0))
 
     def create_recommendation_card(self, item):
         card = tk.Frame(
