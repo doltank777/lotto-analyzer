@@ -77,6 +77,16 @@ class MainWindow:
             background=[("active", "#F7F9FC"), ("pressed", "#EEF2F7")]
         )
 
+        style.configure(
+            "Recommendation.Horizontal.TProgressbar",
+            troughcolor=AppTheme.PROGRESS_TRACK,
+            background=AppTheme.PRIMARY,
+            bordercolor=AppTheme.PROGRESS_TRACK,
+            lightcolor=AppTheme.PRIMARY,
+            darkcolor=AppTheme.PRIMARY,
+            thickness=5
+        )
+
     def create_app_shell(self):
         self.app_shell = tk.Frame(self.root, bg=AppTheme.APP_BACKGROUND)
         self.app_shell.pack(fill="both", expand=True)
@@ -319,11 +329,11 @@ class MainWindow:
         action_card.pack(fill="x", pady=(0, 14))
 
         action_info = tk.Frame(action_card, bg=AppTheme.CARD_BACKGROUND)
-        action_info.pack(side="left", fill="both", expand=True, padx=18, pady=15)
+        action_info.pack(side="left", fill="both", expand=True, padx=18, pady=14)
 
         tk.Label(
             action_info,
-            text="추천번호 생성",
+            text="과거 데이터 기반 추천번호 생성",
             font=AppTheme.FONT_CARD_TITLE,
             fg=AppTheme.TEXT_PRIMARY,
             bg=AppTheme.CARD_BACKGROUND,
@@ -348,13 +358,228 @@ class MainWindow:
         )
         self.generate_button.pack(side="right", padx=18, pady=15)
 
-        result_card = self.create_card(body, "분석 결과")
+        self.recommend_progress = ttk.Progressbar(
+            body,
+            mode="indeterminate",
+            style="Recommendation.Horizontal.TProgressbar"
+        )
+
+        result_card = self.create_card(body, "추천 조합")
         result_card.pack(fill="both", expand=True)
 
-        self.recommend_result_text = scrolledtext.ScrolledText(result_card, height=24)
-        self.recommend_result_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
-        self.configure_text_widget(self.recommend_result_text)
-        self.recommend_result_text.insert(tk.END, "추천번호 생성 버튼을 눌러주세요.\n")
+        result_body = tk.Frame(result_card, bg=AppTheme.CARD_BACKGROUND)
+        result_body.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+
+        self.recommend_canvas = tk.Canvas(
+            result_body,
+            bg=AppTheme.CARD_BACKGROUND,
+            highlightthickness=0,
+            borderwidth=0
+        )
+        self.recommend_scrollbar = ttk.Scrollbar(
+            result_body,
+            orient="vertical",
+            command=self.recommend_canvas.yview
+        )
+        self.recommend_cards_frame = tk.Frame(
+            self.recommend_canvas,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+
+        self.recommend_cards_window = self.recommend_canvas.create_window(
+            (0, 0),
+            window=self.recommend_cards_frame,
+            anchor="nw"
+        )
+        self.recommend_canvas.configure(yscrollcommand=self.recommend_scrollbar.set)
+
+        self.recommend_canvas.pack(side="left", fill="both", expand=True)
+        self.recommend_scrollbar.pack(side="right", fill="y")
+
+        self.recommend_cards_frame.bind(
+            "<Configure>",
+            lambda event: self.recommend_canvas.configure(
+                scrollregion=self.recommend_canvas.bbox("all")
+            )
+        )
+        self.recommend_canvas.bind("<Configure>", self._resize_recommend_cards_frame)
+        self.recommend_canvas.bind_all("<MouseWheel>", self._on_recommend_mousewheel)
+
+        self.show_recommend_empty_state()
+
+    def _resize_recommend_cards_frame(self, event):
+        self.recommend_canvas.itemconfigure(
+            self.recommend_cards_window,
+            width=event.width
+        )
+
+    def _on_recommend_mousewheel(self, event):
+        if self.current_view == "recommend":
+            self.recommend_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def clear_recommendation_cards(self):
+        for widget in self.recommend_cards_frame.winfo_children():
+            widget.destroy()
+
+    def show_recommend_empty_state(self, message="추천번호 생성 버튼을 눌러주세요."):
+        self.clear_recommendation_cards()
+
+        empty_frame = tk.Frame(
+            self.recommend_cards_frame,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        empty_frame.pack(fill="both", expand=True, pady=105)
+
+        icon_canvas = tk.Canvas(
+            empty_frame,
+            width=64,
+            height=64,
+            bg=AppTheme.CARD_BACKGROUND,
+            highlightthickness=0
+        )
+        icon_canvas.pack()
+        icon_canvas.create_oval(
+            7, 7, 57, 57,
+            fill=AppTheme.EMPTY_ICON_BACKGROUND,
+            outline=""
+        )
+        icon_canvas.create_text(
+            32, 32,
+            text="6",
+            font=(AppTheme.FONT_FAMILY, 18, "bold"),
+            fill=AppTheme.PRIMARY
+        )
+
+        tk.Label(
+            empty_frame,
+            text=message,
+            font=AppTheme.FONT_BODY_BOLD,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CARD_BACKGROUND
+        ).pack(pady=(12, 4))
+
+        tk.Label(
+            empty_frame,
+            text="과거 당첨 데이터의 출현빈도, 추세, 조합 및 패턴을 종합 분석합니다.",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CARD_BACKGROUND
+        ).pack()
+
+    def create_lotto_ball(self, parent, number):
+        color = AppTheme.get_lotto_ball_color(number)
+        canvas = tk.Canvas(
+            parent,
+            width=52,
+            height=52,
+            bg=AppTheme.CARD_BACKGROUND,
+            highlightthickness=0
+        )
+        canvas.pack(side="left", padx=(0, 10))
+
+        canvas.create_oval(
+            3, 4, 49, 50,
+            fill=AppTheme.BALL_SHADOW,
+            outline=""
+        )
+        canvas.create_oval(
+            2, 2, 48, 48,
+            fill=color,
+            outline=""
+        )
+        canvas.create_oval(
+            9, 7, 23, 16,
+            fill=AppTheme.BALL_HIGHLIGHT,
+            outline=""
+        )
+        canvas.create_text(
+            25, 25,
+            text=f"{number:02d}",
+            font=(AppTheme.FONT_FAMILY, 11, "bold"),
+            fill=AppTheme.TEXT_INVERSE
+        )
+
+    def create_metric(self, parent, label, value):
+        metric = tk.Frame(parent, bg=AppTheme.METRIC_BACKGROUND)
+        metric.pack(side="left", padx=(0, 8), ipadx=10, ipady=5)
+
+        tk.Label(
+            metric,
+            text=label,
+            font=(AppTheme.FONT_FAMILY, 8),
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.METRIC_BACKGROUND
+        ).pack(side="left")
+
+        tk.Label(
+            metric,
+            text=str(value),
+            font=(AppTheme.FONT_FAMILY, 9, "bold"),
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.METRIC_BACKGROUND
+        ).pack(side="left", padx=(7, 0))
+
+    def create_recommendation_card(self, item):
+        card = tk.Frame(
+            self.recommend_cards_frame,
+            bg=AppTheme.CARD_BACKGROUND,
+            highlightthickness=1,
+            highlightbackground=AppTheme.BORDER
+        )
+        card.pack(fill="x", pady=(0, 10))
+
+        accent = tk.Frame(card, bg=AppTheme.PRIMARY, width=4)
+        accent.pack(side="left", fill="y")
+        accent.pack_propagate(False)
+
+        content = tk.Frame(card, bg=AppTheme.CARD_BACKGROUND)
+        content.pack(side="left", fill="both", expand=True, padx=16, pady=12)
+
+        top_row = tk.Frame(content, bg=AppTheme.CARD_BACKGROUND)
+        top_row.pack(fill="x")
+
+        tk.Label(
+            top_row,
+            text=f"추천 조합 {item['index']:02d}",
+            font=AppTheme.FONT_CARD_TITLE,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CARD_BACKGROUND
+        ).pack(side="left")
+
+        score_frame = tk.Frame(top_row, bg=AppTheme.SCORE_BACKGROUND)
+        score_frame.pack(side="right")
+
+        tk.Label(
+            score_frame,
+            text="종합점수",
+            font=(AppTheme.FONT_FAMILY, 8),
+            fg=AppTheme.PRIMARY,
+            bg=AppTheme.SCORE_BACKGROUND
+        ).pack(side="left", padx=(9, 5), pady=4)
+
+        tk.Label(
+            score_frame,
+            text=f"{item['total_score']:.2f}",
+            font=(AppTheme.FONT_FAMILY, 10, "bold"),
+            fg=AppTheme.PRIMARY,
+            bg=AppTheme.SCORE_BACKGROUND
+        ).pack(side="left", padx=(0, 9), pady=4)
+
+        detail_row = tk.Frame(content, bg=AppTheme.CARD_BACKGROUND)
+        detail_row.pack(fill="x", pady=(10, 0))
+
+        balls = tk.Frame(detail_row, bg=AppTheme.CARD_BACKGROUND)
+        balls.pack(side="left")
+        for number in item["numbers"]:
+            self.create_lotto_ball(balls, number)
+
+        pattern = item["pattern"]
+        metrics = tk.Frame(detail_row, bg=AppTheme.CARD_BACKGROUND)
+        metrics.pack(side="right", pady=7)
+
+        self.create_metric(metrics, "홀짝", pattern["odd_even"]["pattern"])
+        self.create_metric(metrics, "고저", pattern["low_high"]["pattern"])
+        self.create_metric(metrics, "번호합", pattern["sum"]["sum"])
 
     def create_analysis_view(self):
         view = self.create_view_frame("analysis")
@@ -696,12 +921,16 @@ class MainWindow:
 
     def generate_recommendations(self):
         self.generate_button.config(state="disabled")
-        self.recommend_status_label.config(text="분석 중 · 추천번호를 생성하고 있습니다.", fg=AppTheme.PRIMARY)
+        self.recommend_status_label.config(
+            text="분석 중 · 추천번호를 생성하고 있습니다.",
+            fg=AppTheme.PRIMARY
+        )
         self.set_status("추천번호 생성 중...")
         self.add_log("추천번호 생성 시작")
 
-        self.recommend_result_text.delete("1.0", tk.END)
-        self.recommend_result_text.insert(tk.END, "추천번호를 생성하고 있습니다...\n")
+        self.show_recommend_empty_state("추천번호를 생성하고 있습니다.")
+        self.recommend_progress.pack(fill="x", pady=(0, 10))
+        self.recommend_progress.start(10)
 
         threading.Thread(
             target=self._generate_recommendations_worker,
@@ -716,45 +945,44 @@ class MainWindow:
             self.root.after(0, self._handle_recommendation_error, e)
 
     def _display_recommendations(self, recommendations):
-        self.recommend_result_text.delete("1.0", tk.END)
+        self.recommend_progress.stop()
+        self.recommend_progress.pack_forget()
+        self.clear_recommendation_cards()
 
-        self.recommend_result_text.insert(tk.END, "=" * 90 + "\n")
-        self.recommend_result_text.insert(tk.END, "                    최종 추천번호 5세트\n")
-        self.recommend_result_text.insert(tk.END, "=" * 90 + "\n\n")
+        if not recommendations:
+            self.show_recommend_empty_state("조건에 맞는 추천 조합을 생성하지 못했습니다.")
+        else:
+            for item in recommendations:
+                self.create_recommendation_card(item)
 
-        for item in recommendations:
-            pattern = item["pattern"]
-
-            self.recommend_result_text.insert(tk.END, f"[{item['index']}세트]\n")
-            self.recommend_result_text.insert(tk.END, f"번호   : {item['numbers']}\n")
-            self.recommend_result_text.insert(tk.END, f"총점   : {item['total_score']}\n")
-            self.recommend_result_text.insert(
-                tk.END,
-                f"홀짝   : {pattern['odd_even']['pattern']}\n"
+            notice = tk.Label(
+                self.recommend_cards_frame,
+                text="※ 본 추천번호는 과거 데이터 기반 통계 분석 결과입니다.",
+                font=AppTheme.FONT_SMALL,
+                fg=AppTheme.TEXT_SECONDARY,
+                bg=AppTheme.CARD_BACKGROUND,
+                anchor="w"
             )
-            self.recommend_result_text.insert(
-                tk.END,
-                f"고저   : {pattern['low_high']['pattern']}\n"
-            )
-            self.recommend_result_text.insert(
-                tk.END,
-                f"번호합 : {pattern['sum']['sum']}\n"
-            )
-            self.recommend_result_text.insert(tk.END, "-" * 90 + "\n")
+            notice.pack(fill="x", pady=(2, 4))
 
-        self.recommend_result_text.insert(
-            tk.END,
-            "\n※ 본 추천번호는 과거 데이터 기반 통계 분석 결과입니다.\n"
-        )
-
+        self.recommend_canvas.yview_moveto(0)
         self.generate_button.config(state="normal")
-        self.recommend_status_label.config(text="완료 · 추천번호 생성이 완료되었습니다.", fg=AppTheme.SUCCESS)
+        self.recommend_status_label.config(
+            text="완료 · 추천번호 생성이 완료되었습니다.",
+            fg=AppTheme.SUCCESS
+        )
         self.set_status("추천번호 생성 완료 | Lotto Analyzer 정상 동작 중")
         self.add_log("추천번호 생성 완료")
 
     def _handle_recommendation_error(self, error):
+        self.recommend_progress.stop()
+        self.recommend_progress.pack_forget()
         self.generate_button.config(state="normal")
-        self.recommend_status_label.config(text="오류 · 추천번호 생성에 실패했습니다.", fg=AppTheme.ERROR)
+        self.recommend_status_label.config(
+            text="오류 · 추천번호 생성에 실패했습니다.",
+            fg=AppTheme.ERROR
+        )
+        self.show_recommend_empty_state("추천번호 생성 중 오류가 발생했습니다.")
         self.set_status("추천번호 생성 오류 발생")
         self.add_log(f"추천번호 생성 오류 [{type(error).__name__}]: {error}")
         messagebox.showerror(

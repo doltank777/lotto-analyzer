@@ -32,6 +32,20 @@ class AppTheme:
     BORDER = "#E4E9F0"
     DIVIDER = "#EDF0F4"
 
+    # Recommendation card colors
+    PROGRESS_TRACK = "#E8EEF8"
+    EMPTY_ICON_BACKGROUND = "#EAF0FB"
+    METRIC_BACKGROUND = "#F5F7FA"
+    SCORE_BACKGROUND = "#EAF1FF"
+
+    BALL_YELLOW = "#F2B720"
+    BALL_BLUE = "#3B82C4"
+    BALL_RED = "#E35757"
+    BALL_GRAY = "#718096"
+    BALL_GREEN = "#3FA36C"
+    BALL_SHADOW = "#D4DAE3"
+    BALL_HIGHLIGHT = "#FFFFFF"
+
     FONT_FAMILY = "맑은 고딕"
     MONO_FONT_FAMILY = "Consolas"
 
@@ -48,6 +62,18 @@ class AppTheme:
     WINDOW_PADDING = 22
     CARD_PADDING = 18
     PAGE_GAP = 14
+
+    @classmethod
+    def get_lotto_ball_color(cls, number):
+        if 1 <= number <= 10:
+            return cls.BALL_YELLOW
+        if 11 <= number <= 20:
+            return cls.BALL_BLUE
+        if 21 <= number <= 30:
+            return cls.BALL_RED
+        if 31 <= number <= 40:
+            return cls.BALL_GRAY
+        return cls.BALL_GREEN
 
     @classmethod
     def text_widget_options(cls):
