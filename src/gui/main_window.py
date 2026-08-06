@@ -47,7 +47,28 @@ class MainWindow:
         self.create_content_area()
         self.create_status_bar()
         self.create_views()
+        self.bind_global_mousewheel()
         self.show_view("recommend")
+
+    def bind_global_mousewheel(self):
+        """현재 선택된 화면의 스크롤 Canvas에 마우스 휠을 연결합니다."""
+        self.root.bind_all("<MouseWheel>", self._on_global_mousewheel)
+
+    def _on_global_mousewheel(self, event):
+        scroll_units = int(-1 * (event.delta / 120))
+
+        canvas_by_view = {
+            "recommend": getattr(self, "recommend_canvas", None),
+            "analysis": getattr(self, "analysis_canvas", None),
+            "backtest": getattr(self, "backtest_canvas", None),
+        }
+
+        canvas = canvas_by_view.get(self.current_view)
+
+        if canvas is None:
+            return
+
+        canvas.yview_scroll(scroll_units, "units")
 
     def create_styles(self):
         style = ttk.Style()
@@ -397,7 +418,6 @@ class MainWindow:
             )
         )
         self.recommend_canvas.bind("<Configure>", self._resize_recommend_cards_frame)
-        self.recommend_canvas.bind_all("<MouseWheel>", self._on_recommend_mousewheel)
 
         self.show_recommend_empty_state()
 
@@ -406,10 +426,6 @@ class MainWindow:
             self.recommend_cards_window,
             width=event.width
         )
-
-    def _on_recommend_mousewheel(self, event):
-        if self.current_view == "recommend":
-            self.recommend_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
 
     def clear_recommendation_cards(self):
         for widget in self.recommend_cards_frame.winfo_children():
@@ -592,10 +608,6 @@ class MainWindow:
             "<Configure>",
             self._resize_analysis_dashboard_frame
         )
-        self.analysis_canvas.bind_all(
-            "<MouseWheel>",
-            self._on_analysis_mousewheel
-        )
 
         self.show_analysis_empty_state()
 
@@ -604,13 +616,6 @@ class MainWindow:
             self.analysis_dashboard_window,
             width=event.width
         )
-
-    def _on_analysis_mousewheel(self, event):
-        if self.current_view == "analysis":
-            self.analysis_canvas.yview_scroll(
-                int(-1 * (event.delta / 120)),
-                "units"
-            )
 
     def clear_analysis_dashboard(self):
         for widget in self.analysis_dashboard_frame.winfo_children():
@@ -1051,10 +1056,6 @@ class MainWindow:
             "<Configure>",
             self._resize_backtest_dashboard_frame
         )
-        self.backtest_canvas.bind_all(
-            "<MouseWheel>",
-            self._on_backtest_mousewheel
-        )
 
         self.show_backtest_empty_state()
 
@@ -1063,13 +1064,6 @@ class MainWindow:
             self.backtest_dashboard_window,
             width=event.width
         )
-
-    def _on_backtest_mousewheel(self, event):
-        if self.current_view == "backtest":
-            self.backtest_canvas.yview_scroll(
-                int(-1 * (event.delta / 120)),
-                "units"
-            )
 
     def clear_backtest_dashboard(self):
         for widget in self.backtest_dashboard_frame.winfo_children():
