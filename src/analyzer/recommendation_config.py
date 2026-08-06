@@ -6,6 +6,12 @@ RECOMMENDATION_WEIGHTS = {
     "missing": 0.20
 }
 
+COMBINATION_WEIGHTS = {
+    "pair": 0.01,
+    "triple": 0.005,
+    "pattern": 1.0
+}
+
 FINAL_RECOMMENDATION_SETTINGS = {
     "set_count": 5,
     "candidate_pool_size": 35,
