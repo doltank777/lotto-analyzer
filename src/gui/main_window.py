@@ -61,6 +61,7 @@ class MainWindow:
             "recommend": getattr(self, "recommend_canvas", None),
             "analysis": getattr(self, "analysis_canvas", None),
             "backtest": getattr(self, "backtest_canvas", None),
+            "draw_search": getattr(self, "draw_search_canvas", None),
         }
 
         canvas = canvas_by_view.get(self.current_view)
@@ -1367,18 +1368,70 @@ class MainWindow:
         result_card = self.create_card(body, "당첨번호 조회 결과")
         result_card.pack(fill="both", expand=True)
 
-        self.draw_result_container = tk.Frame(
+        result_body = tk.Frame(
             result_card,
             bg=AppTheme.CARD_BACKGROUND
         )
-        self.draw_result_container.pack(
+        result_body.pack(
             fill="both",
             expand=True,
             padx=18,
             pady=(0, 18)
         )
 
+        self.draw_search_canvas = tk.Canvas(
+            result_body,
+            bg=AppTheme.CARD_BACKGROUND,
+            highlightthickness=0,
+            borderwidth=0
+        )
+        self.draw_search_scrollbar = ttk.Scrollbar(
+            result_body,
+            orient="vertical",
+            command=self.draw_search_canvas.yview
+        )
+        self.draw_result_container = tk.Frame(
+            self.draw_search_canvas,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+
+        self.draw_search_window = self.draw_search_canvas.create_window(
+            (0, 0),
+            window=self.draw_result_container,
+            anchor="nw"
+        )
+        self.draw_search_canvas.configure(
+            yscrollcommand=self.draw_search_scrollbar.set
+        )
+
+        self.draw_search_canvas.pack(
+            side="left",
+            fill="both",
+            expand=True
+        )
+        self.draw_search_scrollbar.pack(
+            side="right",
+            fill="y"
+        )
+
+        self.draw_result_container.bind(
+            "<Configure>",
+            lambda event: self.draw_search_canvas.configure(
+                scrollregion=self.draw_search_canvas.bbox("all")
+            )
+        )
+        self.draw_search_canvas.bind(
+            "<Configure>",
+            self._resize_draw_search_result
+        )
+
         self.show_draw_search_empty_state()
+
+    def _resize_draw_search_result(self, event):
+        self.draw_search_canvas.itemconfigure(
+            self.draw_search_window,
+            width=event.width
+        )
 
     def clear_draw_search_result(self):
         for widget in self.draw_result_container.winfo_children():
@@ -1400,6 +1453,9 @@ class MainWindow:
             icon_text="D"
         )
         empty_state.pack(fill="both", expand=True, pady=105)
+
+        self.draw_search_canvas.update_idletasks()
+        self.draw_search_canvas.yview_moveto(0)
 
     def create_draw_result_card(self, result):
         self.clear_draw_search_result()
@@ -1556,7 +1612,10 @@ class MainWindow:
             fg=AppTheme.TEXT_SECONDARY,
             bg=AppTheme.CARD_BACKGROUND,
             anchor="w"
-        ).pack(fill="x", padx=30, pady=(4, 0))
+        ).pack(fill="x", padx=30, pady=(4, 12))
+
+        self.draw_search_canvas.update_idletasks()
+        self.draw_search_canvas.yview_moveto(0)
 
     def create_log_view(self):
         view = self.create_view_frame("log")
