@@ -1306,50 +1306,257 @@ class MainWindow:
             "저장된 과거 당첨번호 데이터에서 특정 회차의 당첨번호를 조회합니다."
         )
 
-        search_card = self.create_card(body, "회차 검색")
+        search_card = self.create_card(body)
         search_card.pack(fill="x", pady=(0, 14))
 
-        search_row = tk.Frame(search_card, bg=AppTheme.CARD_BACKGROUND)
-        search_row.pack(fill="x", padx=18, pady=(0, 18))
+        search_info = tk.Frame(search_card, bg=AppTheme.CARD_BACKGROUND)
+        search_info.pack(side="left", fill="both", expand=True, padx=18, pady=14)
 
         tk.Label(
-            search_row,
-            text="조회 회차",
-            font=AppTheme.FONT_BODY_BOLD,
+            search_info,
+            text="당첨번호 회차 검색",
+            font=AppTheme.FONT_CARD_TITLE,
             fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        ).pack(anchor="w")
+
+        self.draw_search_status_label = tk.Label(
+            search_info,
+            text="조회할 회차를 입력해주세요.",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        )
+        self.draw_search_status_label.pack(anchor="w", pady=(5, 0))
+
+        search_controls = tk.Frame(
+            search_card,
             bg=AppTheme.CARD_BACKGROUND
-        ).pack(side="left")
+        )
+        search_controls.pack(side="right", padx=18, pady=14)
 
         self.draw_no_entry = tk.Entry(
-            search_row,
-            width=18,
+            search_controls,
+            width=14,
             font=AppTheme.FONT_BODY,
             bg=AppTheme.INPUT_BACKGROUND,
             fg=AppTheme.TEXT_PRIMARY,
             insertbackground=AppTheme.TEXT_PRIMARY,
             relief="flat",
+            justify="center",
             highlightthickness=1,
             highlightbackground=AppTheme.BORDER,
             highlightcolor=AppTheme.PRIMARY
         )
-        self.draw_no_entry.pack(side="left", padx=(12, 8), ipady=7)
-        self.draw_no_entry.bind("<Return>", lambda event: self.search_draw_number())
+        self.draw_no_entry.pack(side="left", padx=(0, 8), ipady=8)
+        self.draw_no_entry.bind(
+            "<Return>",
+            lambda event: self.search_draw_number()
+        )
 
-        search_button = ttk.Button(
-            search_row,
+        self.draw_search_button = ttk.Button(
+            search_controls,
             text="조회",
             style="Primary.TButton",
             command=self.search_draw_number
         )
-        search_button.pack(side="left")
+        self.draw_search_button.pack(side="left")
 
         result_card = self.create_card(body, "당첨번호 조회 결과")
         result_card.pack(fill="both", expand=True)
 
-        self.draw_search_text = scrolledtext.ScrolledText(result_card, height=23)
-        self.draw_search_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
-        self.configure_text_widget(self.draw_search_text)
-        self.draw_search_text.insert(tk.END, "조회할 회차를 입력해주세요.\n")
+        self.draw_result_container = tk.Frame(
+            result_card,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        self.draw_result_container.pack(
+            fill="both",
+            expand=True,
+            padx=18,
+            pady=(0, 18)
+        )
+
+        self.show_draw_search_empty_state()
+
+    def clear_draw_search_result(self):
+        for widget in self.draw_result_container.winfo_children():
+            widget.destroy()
+
+    def show_draw_search_empty_state(
+        self,
+        message="조회할 회차를 입력해주세요."
+    ):
+        self.clear_draw_search_result()
+
+        empty_state = EmptyState(
+            self.draw_result_container,
+            message=message,
+            description=(
+                "저장된 과거 당첨번호 데이터에서 회차별 당첨번호와 "
+                "보너스번호를 확인합니다."
+            ),
+            icon_text="D"
+        )
+        empty_state.pack(fill="both", expand=True, pady=105)
+
+    def create_draw_result_card(self, result):
+        self.clear_draw_search_result()
+
+        draw_no = result["draw_no"]
+        numbers = result["numbers"]
+        bonus_number = result["bonus_number"]
+
+        header = tk.Frame(
+            self.draw_result_container,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        header.pack(fill="x", pady=(20, 8))
+
+        tk.Label(
+            header,
+            text=f"제 {draw_no}회",
+            font=(AppTheme.FONT_FAMILY, 24, "bold"),
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CARD_BACKGROUND
+        ).pack()
+
+        tk.Label(
+            header,
+            text="로또 당첨번호",
+            font=AppTheme.FONT_BODY,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CARD_BACKGROUND
+        ).pack(pady=(5, 0))
+
+        number_card = tk.Frame(
+            self.draw_result_container,
+            bg=AppTheme.INPUT_BACKGROUND,
+            highlightthickness=1,
+            highlightbackground=AppTheme.BORDER
+        )
+        number_card.pack(fill="x", padx=30, pady=(18, 14))
+
+        number_content = tk.Frame(
+            number_card,
+            bg=AppTheme.INPUT_BACKGROUND
+        )
+        number_content.pack(pady=28)
+
+        winning_area = tk.Frame(
+            number_content,
+            bg=AppTheme.INPUT_BACKGROUND
+        )
+        winning_area.pack(side="left")
+
+        tk.Label(
+            winning_area,
+            text="당첨번호",
+            font=AppTheme.FONT_BODY_BOLD,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.INPUT_BACKGROUND
+        ).pack(pady=(0, 12))
+
+        winning_balls = tk.Frame(
+            winning_area,
+            bg=AppTheme.INPUT_BACKGROUND
+        )
+        winning_balls.pack()
+
+        for number in numbers:
+            ball = LottoBall(
+                winning_balls,
+                number,
+                size=64,
+                background=AppTheme.INPUT_BACKGROUND
+            )
+            ball.pack(side="left", padx=6)
+
+        plus_area = tk.Frame(
+            number_content,
+            bg=AppTheme.INPUT_BACKGROUND
+        )
+        plus_area.pack(side="left", padx=24)
+
+        tk.Label(
+            plus_area,
+            text="+",
+            font=(AppTheme.FONT_FAMILY, 24, "bold"),
+            fg=AppTheme.TEXT_MUTED,
+            bg=AppTheme.INPUT_BACKGROUND
+        ).pack(pady=(36, 0))
+
+        bonus_area = tk.Frame(
+            number_content,
+            bg=AppTheme.INPUT_BACKGROUND
+        )
+        bonus_area.pack(side="left")
+
+        tk.Label(
+            bonus_area,
+            text="보너스",
+            font=AppTheme.FONT_BODY_BOLD,
+            fg=AppTheme.PRIMARY,
+            bg=AppTheme.INPUT_BACKGROUND
+        ).pack(pady=(0, 12))
+
+        bonus_ball = LottoBall(
+            bonus_area,
+            bonus_number,
+            size=64,
+            background=AppTheme.INPUT_BACKGROUND
+        )
+        bonus_ball.pack()
+
+        metrics_row = tk.Frame(
+            self.draw_result_container,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        metrics_row.pack(fill="x", padx=30, pady=(0, 14))
+
+        for column in range(3):
+            metrics_row.grid_columnconfigure(
+                column,
+                weight=1,
+                uniform="draw_metric"
+            )
+
+        odd_count = sum(1 for number in numbers if number % 2 == 1)
+        even_count = len(numbers) - odd_count
+        low_count = sum(1 for number in numbers if number <= 22)
+        high_count = len(numbers) - low_count
+        total_sum = sum(numbers)
+
+        metric_values = [
+            ("번호합", str(total_sum), AppTheme.PRIMARY),
+            ("홀짝 비율", f"{odd_count}:{even_count}", AppTheme.SUCCESS),
+            ("고저 비율", f"{low_count}:{high_count}", AppTheme.WARNING),
+        ]
+
+        for column, (title, value, color) in enumerate(metric_values):
+            metric_card = SummaryCard(
+                metrics_row,
+                title=title,
+                value=value,
+                description="당첨번호 6개 기준",
+                accent_color=color
+            )
+            metric_card.grid(
+                row=0,
+                column=column,
+                sticky="nsew",
+                padx=(0 if column == 0 else 5, 0 if column == 2 else 5)
+            )
+
+        tk.Label(
+            self.draw_result_container,
+            text="※ 저장된 과거 당첨번호 데이터를 기준으로 조회한 결과입니다.",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        ).pack(fill="x", padx=30, pady=(4, 0))
 
     def create_log_view(self):
         view = self.create_view_frame("log")
@@ -1540,62 +1747,72 @@ class MainWindow:
             draw_no_text = self.draw_no_entry.get().strip()
 
             if not draw_no_text:
-                messagebox.showwarning("입력 오류", "조회할 회차를 입력해주세요.")
+                messagebox.showwarning(
+                    "입력 오류",
+                    "조회할 회차를 입력해주세요."
+                )
                 return
 
             if not draw_no_text.isdigit():
-                messagebox.showwarning("입력 오류", "회차는 숫자만 입력해주세요.")
+                messagebox.showwarning(
+                    "입력 오류",
+                    "회차는 숫자만 입력해주세요."
+                )
                 return
 
             draw_no = int(draw_no_text)
 
+            self.draw_search_button.config(state="disabled")
+            self.draw_search_status_label.config(
+                text=f"{draw_no}회 당첨번호를 조회하고 있습니다.",
+                fg=AppTheme.PRIMARY
+            )
             self.set_status(f"{draw_no}회 당첨번호 조회 중...")
             self.add_log(f"{draw_no}회 당첨번호 조회 시작")
 
             result = self.draw_search_service.get_draw_by_no(draw_no)
 
-            self.draw_search_text.delete("1.0", tk.END)
-
             if result is None:
-                self.draw_search_text.insert(
-                    tk.END,
-                    f"{draw_no}회 당첨번호 데이터가 없습니다.\n"
+                self.show_draw_search_empty_state(
+                    f"{draw_no}회 당첨번호 데이터가 없습니다."
+                )
+                self.draw_search_status_label.config(
+                    text="조회 결과 없음 · 다른 회차를 입력해주세요.",
+                    fg=AppTheme.WARNING
                 )
                 self.set_status("회차조회 결과 없음")
                 self.add_log(f"{draw_no}회 당첨번호 조회 결과 없음")
                 return
 
-            self.draw_search_text.insert(tk.END, "=" * 70 + "\n")
-            self.draw_search_text.insert(tk.END, f"                      {result['draw_no']}회 당첨번호\n")
-            self.draw_search_text.insert(tk.END, "=" * 70 + "\n\n")
+            self.create_draw_result_card(result)
 
-            self.draw_search_text.insert(
-                tk.END,
-                f"당첨번호 : {result['numbers']}\n"
+            self.draw_search_status_label.config(
+                text=f"완료 · {draw_no}회 당첨번호 조회 완료",
+                fg=AppTheme.SUCCESS
             )
-
-            self.draw_search_text.insert(
-                tk.END,
-                f"보너스번호 : {result['bonus_number']}\n"
-            )
-
-            self.draw_search_text.insert(tk.END, "\n" + "-" * 70 + "\n")
-            self.draw_search_text.insert(
-                tk.END,
-                "※ 저장된 과거 당첨번호 데이터를 기준으로 조회합니다.\n"
-            )
-
             self.set_status(f"{draw_no}회 당첨번호 조회 완료")
             self.add_log(f"{draw_no}회 당첨번호 조회 완료")
 
         except Exception as e:
+            self.show_draw_search_empty_state(
+                "회차조회 중 오류가 발생했습니다."
+            )
+            self.draw_search_status_label.config(
+                text="오류 · 회차조회에 실패했습니다.",
+                fg=AppTheme.ERROR
+            )
             self.set_status("회차조회 오류 발생")
-            self.add_log(f"회차조회 오류: {e}")
+            self.add_log(
+                f"회차조회 오류 [{type(e).__name__}]: {e}"
+            )
 
             messagebox.showerror(
                 "오류",
                 f"회차조회 중 오류가 발생했습니다.\n\n{e}"
             )
+
+        finally:
+            self.draw_search_button.config(state="normal")
 
     def add_log(self, message):
         if hasattr(self, "log_text"):
