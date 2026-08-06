@@ -8,6 +8,7 @@ from src.app.draw_search_service import DrawSearchService
 from src.app.analysis_service import AnalysisService
 from src.app.backtest_service import BacktestService
 from src.gui.theme import AppTheme
+from src.gui.views import RecommendationSettingsView
 from src.gui.components import (
     AppCard,
     EmptyState,
@@ -63,6 +64,13 @@ class MainWindow:
             "backtest": getattr(self, "backtest_canvas", None),
             "draw_search": getattr(self, "draw_search_canvas", None),
         }
+
+        if (
+            self.current_view == "settings"
+            and hasattr(self, "recommendation_settings_view")
+        ):
+            self.recommendation_settings_view.handle_mousewheel(event)
+            return
 
         canvas = canvas_by_view.get(self.current_view)
 
@@ -174,6 +182,7 @@ class MainWindow:
             ("analysis", "통계분석"),
             ("backtest", "백테스트"),
             ("draw_search", "회차조회"),
+            ("settings", "추천 설정"),
             ("log", "시스템로그"),
         ]
 
@@ -293,6 +302,7 @@ class MainWindow:
         self.create_analysis_view()
         self.create_backtest_view()
         self.create_draw_search_view()
+        self.create_recommendation_settings_view()
         self.create_log_view()
 
     def create_view_frame(self, key):
@@ -1617,6 +1627,14 @@ class MainWindow:
         self.draw_search_canvas.update_idletasks()
         self.draw_search_canvas.yview_moveto(0)
 
+    def create_recommendation_settings_view(self):
+        view = self.create_view_frame("settings")
+        self.recommendation_settings_view = RecommendationSettingsView(
+            view,
+            recommendation_service=self.recommendation_service
+        )
+        self.recommendation_settings_view.pack(fill="both", expand=True)
+
     def create_log_view(self):
         view = self.create_view_frame("log")
         body = tk.Frame(view, bg=AppTheme.CONTENT_BACKGROUND)
@@ -1754,6 +1772,7 @@ class MainWindow:
             "analysis": ("통계분석", "과거 당첨 데이터의 주요 통계와 패턴을 확인합니다."),
             "backtest": ("백테스트", "추천번호 생성 결과를 과거 회차 기준으로 검증합니다."),
             "draw_search": ("회차조회", "특정 회차의 당첨번호와 보너스번호를 조회합니다."),
+            "settings": ("추천 설정", "추천번호 생성에 사용하는 가중치와 조건을 관리합니다."),
             "log": ("시스템로그", "프로그램 실행 상태와 처리 내역을 확인합니다."),
         }
 
