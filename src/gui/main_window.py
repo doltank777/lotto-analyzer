@@ -11,6 +11,7 @@ from src.gui.theme import AppTheme
 from src.gui.views import RecommendationSettingsView
 from src.gui.components import (
     AppCard,
+    ChartCard,
     EmptyState,
     LottoBall,
     MetricBadge,
@@ -682,16 +683,17 @@ class MainWindow:
             else None
         )
         hot = summary["hot_numbers"][0] if summary["hot_numbers"] else None
-        rising = (
-            summary["rising_numbers"][0]
-            if summary["rising_numbers"]
-            else None
-        )
         missing = (
             summary["missing_numbers"][0]
             if summary["missing_numbers"]
             else None
         )
+
+        total_draw_count = 0
+        if most_common and most_common.get("rate"):
+            total_draw_count = round(
+                most_common["count"] / most_common["rate"] * 100
+            )
 
         kpi_row = tk.Frame(
             self.analysis_dashboard_frame,
@@ -705,6 +707,14 @@ class MainWindow:
         self.create_dashboard_summary_card(
             kpi_row,
             0,
+            "분석 회차",
+            f"{total_draw_count}회" if total_draw_count else "-",
+            "저장된 과거 당첨 데이터 기준",
+            AppTheme.PRIMARY
+        )
+        self.create_dashboard_summary_card(
+            kpi_row,
+            1,
             "최다 출현 번호",
             f"{most_common['number']}번" if most_common else "-",
             (
@@ -712,27 +722,15 @@ class MainWindow:
                 if most_common
                 else "데이터 없음"
             ),
-            AppTheme.PRIMARY
-        )
-        self.create_dashboard_summary_card(
-            kpi_row,
-            1,
-            "최근 30회 HOT",
-            f"{hot['number']}번" if hot else "-",
-            f"{hot['count']}회 출현" if hot else "데이터 없음",
-            AppTheme.ERROR
+            AppTheme.SUCCESS
         )
         self.create_dashboard_summary_card(
             kpi_row,
             2,
-            "상승 번호",
-            f"{rising['number']}번" if rising else "-",
-            (
-                f"최근 {rising['recent_count']}회 · 차이 {rising['diff']:+d}"
-                if rising
-                else "데이터 없음"
-            ),
-            AppTheme.SUCCESS
+            "최근 30회 HOT",
+            f"{hot['number']}번" if hot else "-",
+            f"{hot['count']}회 출현" if hot else "데이터 없음",
+            AppTheme.ERROR
         )
         self.create_dashboard_summary_card(
             kpi_row,
@@ -745,6 +743,125 @@ class MainWindow:
                 else "데이터 없음"
             ),
             AppTheme.WARNING
+        )
+
+        charts = tk.Frame(
+            self.analysis_dashboard_frame,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        charts.pack(fill="both", expand=True, pady=(0, 12))
+        charts.grid_columnconfigure(0, weight=1, uniform="analysis_chart")
+        charts.grid_columnconfigure(1, weight=1, uniform="analysis_chart")
+
+        frequency_chart = ChartCard(
+            charts,
+            title="출현빈도 TOP 10",
+            description="전체 회차 기준 번호별 출현 횟수",
+            figure_height=3.0
+        )
+        frequency_chart.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, 6),
+            pady=(0, 12)
+        )
+        frequency_chart.draw_bar_chart(
+            labels=[
+                f"{item['number']}번"
+                for item in summary["most_common_numbers"]
+            ],
+            values=[
+                item["count"]
+                for item in summary["most_common_numbers"]
+            ],
+            y_label="출현 횟수"
+        )
+
+        hot_chart = ChartCard(
+            charts,
+            title="최근 30회 HOT 번호",
+            description="최근 30회 기준 출현 횟수 상위 번호",
+            figure_height=3.0
+        )
+        hot_chart.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(6, 0),
+            pady=(0, 12)
+        )
+        hot_chart.draw_horizontal_bar_chart(
+            labels=[
+                f"{item['number']}번"
+                for item in summary["hot_numbers"]
+            ],
+            values=[
+                item["count"]
+                for item in summary["hot_numbers"]
+            ],
+            x_label="출현 횟수",
+            color=AppTheme.ERROR
+        )
+
+        pattern_summary = summary["pattern_summary"]
+
+        sum_chart = ChartCard(
+            charts,
+            title="번호합 구간 분포",
+            description="당첨번호 6개의 합계 구간별 발생 횟수",
+            figure_height=3.0
+        )
+        sum_chart.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+            padx=(0, 6)
+        )
+        sum_chart.draw_bar_chart(
+            labels=[
+                str(item["pattern"])
+                for item in pattern_summary["sum"]
+            ],
+            values=[
+                item["count"]
+                for item in pattern_summary["sum"]
+            ],
+            y_label="발생 횟수",
+            rotate_labels=20,
+            color=AppTheme.WARNING
+        )
+
+        odd_even_chart = ChartCard(
+            charts,
+            title="홀짝 패턴 분포",
+            description="당첨번호의 홀수·짝수 구성 비율",
+            figure_height=3.0
+        )
+        odd_even_chart.grid(
+            row=1,
+            column=1,
+            sticky="nsew",
+            padx=(6, 0)
+        )
+        odd_even_chart.draw_pie_chart(
+            labels=[
+                str(item["pattern"])
+                for item in pattern_summary["odd_even"]
+            ],
+            values=[
+                item["count"]
+                for item in pattern_summary["odd_even"]
+            ],
+            colors=[
+                AppTheme.PRIMARY,
+                AppTheme.SUCCESS,
+                AppTheme.WARNING,
+                AppTheme.ERROR,
+                AppTheme.TEXT_MUTED,
+                "#7C3AED",
+                "#0891B2",
+            ]
         )
 
         sections = tk.Frame(
@@ -928,8 +1045,6 @@ class MainWindow:
         )
         for column in range(2):
             pattern_card.content.grid_columnconfigure(column, weight=1)
-
-        pattern_summary = summary["pattern_summary"]
 
         def pattern_rows(items, suffix=""):
             return [
