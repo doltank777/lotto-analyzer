@@ -4,6 +4,7 @@ from tkinter import filedialog, messagebox, scrolledtext, ttk
 from datetime import datetime
 
 from src.app.recommendation_service import RecommendationService
+from src.app.recommendation_export_service import RecommendationExportService
 from src.app.draw_search_service import DrawSearchService
 from src.app.analysis_service import AnalysisService
 from src.app.backtest_service import BacktestService
@@ -31,6 +32,8 @@ class MainWindow:
         self.root.configure(bg=AppTheme.APP_BACKGROUND)
 
         self.recommendation_service = RecommendationService()
+        self.recommendation_export_service = RecommendationExportService()
+        self.latest_recommendations = []
         self.draw_search_service = DrawSearchService()
         self.analysis_service = AnalysisService()
         self.backtest_service = BacktestService()
@@ -378,13 +381,45 @@ class MainWindow:
         )
         self.recommend_status_label.pack(anchor="w", pady=(5, 0))
 
-        self.generate_button = ttk.Button(
+        action_buttons = tk.Frame(
             action_card,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        action_buttons.pack(side="right", padx=18, pady=15)
+
+        self.export_button = ttk.Menubutton(
+            action_buttons,
+            text="내보내기",
+            style="Secondary.TButton",
+            state="disabled"
+        )
+        self.export_button.pack(side="left", padx=(0, 8))
+
+        export_menu = tk.Menu(
+            self.export_button,
+            tearoff=False
+        )
+        export_menu.add_command(
+            label="PNG 이미지 저장",
+            command=lambda: self.export_recommendations("png")
+        )
+        export_menu.add_command(
+            label="PDF 문서 저장",
+            command=lambda: self.export_recommendations("pdf")
+        )
+        export_menu.add_command(
+            label="TXT 파일 저장",
+            command=lambda: self.export_recommendations("txt")
+        )
+        self.export_button["menu"] = export_menu
+
+        self.generate_button = ttk.Button(
+            action_buttons,
             text="추천번호 생성",
             style="Primary.TButton",
             command=self.generate_recommendations
         )
-        self.generate_button.pack(side="right", padx=18, pady=15)
+        self.generate_button.pack(side="left")
 
         self.recommend_progress = create_indeterminate_progress(
             body,
@@ -2087,6 +2122,7 @@ class MainWindow:
 
     def generate_recommendations(self):
         self.generate_button.config(state="disabled")
+        self.export_button.config(state="disabled")
         self.recommend_status_label.config(
             text="분석 중 · 추천번호를 생성하고 있습니다.",
             fg=AppTheme.PRIMARY
@@ -2114,6 +2150,7 @@ class MainWindow:
         self.recommend_progress.stop()
         self.recommend_progress.pack_forget()
         self.clear_recommendation_cards()
+        self.latest_recommendations = recommendations or []
 
         if not recommendations:
             self.show_recommend_empty_state("조건에 맞는 추천 조합을 생성하지 못했습니다.")
@@ -2133,6 +2170,9 @@ class MainWindow:
 
         self.recommend_canvas.yview_moveto(0)
         self.generate_button.config(state="normal")
+        self.export_button.config(
+            state="normal" if recommendations else "disabled"
+        )
         self.recommend_status_label.config(
             text="완료 · 추천번호 생성이 완료되었습니다.",
             fg=AppTheme.SUCCESS
@@ -2141,6 +2181,8 @@ class MainWindow:
         self.add_log("추천번호 생성 완료", "SUCCESS")
 
     def _handle_recommendation_error(self, error):
+        self.latest_recommendations = []
+        self.export_button.config(state="disabled")
         self.recommend_progress.stop()
         self.recommend_progress.pack_forget()
         self.generate_button.config(state="normal")
@@ -2155,6 +2197,93 @@ class MainWindow:
             "오류",
             f"추천번호 생성 중 오류가 발생했습니다.\n\n{error}"
         )
+
+    def export_recommendations(self, export_type):
+        if not self.latest_recommendations:
+            messagebox.showwarning(
+                "내보내기",
+                "먼저 추천번호를 생성해주세요."
+            )
+            return
+
+        export_config = {
+            "png": {
+                "title": "PNG 이미지 저장",
+                "extension": ".png",
+                "filetypes": [("PNG 이미지", "*.png")],
+            },
+            "pdf": {
+                "title": "PDF 문서 저장",
+                "extension": ".pdf",
+                "filetypes": [("PDF 문서", "*.pdf")],
+            },
+            "txt": {
+                "title": "TXT 파일 저장",
+                "extension": ".txt",
+                "filetypes": [("텍스트 파일", "*.txt")],
+            },
+        }
+
+        config = export_config.get(export_type)
+        if config is None:
+            return
+
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        default_name = (
+            f"lotto_recommendation_{timestamp}"
+            f"{config['extension']}"
+        )
+
+        file_path = filedialog.asksaveasfilename(
+            title=config["title"],
+            defaultextension=config["extension"],
+            initialfile=default_name,
+            filetypes=config["filetypes"] + [("모든 파일", "*.*")],
+        )
+
+        if not file_path:
+            return
+
+        try:
+            if export_type == "png":
+                saved_path = self.recommendation_export_service.export_png(
+                    file_path,
+                    self.latest_recommendations,
+                    version=AppTheme.VERSION,
+                )
+            elif export_type == "pdf":
+                saved_path = self.recommendation_export_service.export_pdf(
+                    file_path,
+                    self.latest_recommendations,
+                    version=AppTheme.VERSION,
+                )
+            else:
+                saved_path = self.recommendation_export_service.export_txt(
+                    file_path,
+                    self.latest_recommendations,
+                    version=AppTheme.VERSION,
+                )
+
+            self.set_status("추천번호 내보내기 완료")
+            self.add_log(
+                f"추천번호 {export_type.upper()} 저장 완료: {saved_path}",
+                "SUCCESS",
+            )
+            messagebox.showinfo(
+                "내보내기 완료",
+                f"추천번호를 저장했습니다.\\n\\n{saved_path}",
+            )
+        except Exception as error:
+            self.set_status("추천번호 내보내기 오류")
+            self.add_log(
+                f"추천번호 내보내기 오류 "
+                f"[{type(error).__name__}]: {error}",
+                "ERROR",
+            )
+            messagebox.showerror(
+                "내보내기 오류",
+                f"추천번호 저장 중 오류가 발생했습니다.\\n\\n{error}",
+            )
 
     def search_draw_number(self):
         try:
