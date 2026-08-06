@@ -1272,6 +1272,122 @@ class MainWindow:
                 padx=(0 if column == 0 else 5, 0 if column == 3 else 5)
             )
 
+        charts = tk.Frame(
+            self.backtest_dashboard_frame,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        charts.pack(fill="both", expand=True, pady=(0, 12))
+        charts.grid_columnconfigure(
+            0,
+            weight=1,
+            uniform="backtest_chart"
+        )
+        charts.grid_columnconfigure(
+            1,
+            weight=1,
+            uniform="backtest_chart"
+        )
+
+        rank_labels = [
+            str(rank)
+            for rank in summary["rank_counts"].keys()
+        ]
+        rank_values = [
+            count
+            for count in summary["rank_counts"].values()
+        ]
+
+        rank_chart = ChartCard(
+            charts,
+            title="등수 분포",
+            description="전체 추천번호의 등수별 발생 횟수",
+            figure_height=3.0
+        )
+        rank_chart.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, 6),
+            pady=(0, 12)
+        )
+        rank_chart.draw_bar_chart(
+            labels=rank_labels,
+            values=rank_values,
+            y_label="세트 수",
+            color=AppTheme.PRIMARY
+        )
+
+        match_labels = [
+            f"{match}개"
+            for match in summary[
+                "match_count_distribution"
+            ].keys()
+        ]
+        match_values = [
+            count
+            for count in summary[
+                "match_count_distribution"
+            ].values()
+        ]
+
+        match_chart = ChartCard(
+            charts,
+            title="일치 개수 분포",
+            description="실제 당첨번호와 일치한 번호 개수별 분포",
+            figure_height=3.0
+        )
+        match_chart.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(6, 0),
+            pady=(0, 12)
+        )
+        match_chart.draw_horizontal_bar_chart(
+            labels=match_labels,
+            values=match_values,
+            x_label="세트 수",
+            color=AppTheme.SUCCESS
+        )
+
+        score_labels = []
+        score_success_rates = []
+
+        for score, stat in summary[
+            "score_range_stats"
+        ].items():
+            success_rate = 0
+
+            if stat["count"] > 0:
+                success_rate = round(
+                    stat["three_or_more_count"]
+                    / stat["count"]
+                    * 100,
+                    2
+                )
+
+            score_labels.append(f"{score}점")
+            score_success_rates.append(success_rate)
+
+        score_chart = ChartCard(
+            charts,
+            title="점수 구간별 성공률",
+            description="각 점수 구간의 3개 이상 일치 비율",
+            figure_height=3.2
+        )
+        score_chart.grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="nsew"
+        )
+        score_chart.draw_line_chart(
+            labels=score_labels,
+            values=score_success_rates,
+            y_label="성공률 (%)",
+            color=AppTheme.WARNING
+        )
+
         sections = tk.Frame(
             self.backtest_dashboard_frame,
             bg=AppTheme.CARD_BACKGROUND
