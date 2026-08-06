@@ -2,14 +2,17 @@ import tkinter as tk
 import threading
 from tkinter import filedialog, messagebox, scrolledtext, ttk
 from datetime import datetime
+from pathlib import Path
 
 from src.app.recommendation_service import RecommendationService
 from src.app.recommendation_export_service import RecommendationExportService
 from src.app.draw_search_service import DrawSearchService
 from src.app.analysis_service import AnalysisService
 from src.app.backtest_service import BacktestService
+from src.app.about_service import AboutService
 from src.gui.theme import AppTheme
 from src.gui.views import RecommendationSettingsView
+from src.gui.views.about_view import AboutView
 from src.gui.components import (
     AppCard,
     ChartCard,
@@ -37,6 +40,7 @@ class MainWindow:
         self.draw_search_service = DrawSearchService()
         self.analysis_service = AnalysisService()
         self.backtest_service = BacktestService()
+        self.about_service = AboutService()
 
         self.menu_buttons = {}
         self.views = {}
@@ -188,6 +192,7 @@ class MainWindow:
             ("draw_search", "회차조회"),
             ("settings", "추천 설정"),
             ("log", "시스템로그"),
+            ("about", "프로그램 정보"),
         ]
 
         for key, label in menu_items:
@@ -308,6 +313,7 @@ class MainWindow:
         self.create_draw_search_view()
         self.create_recommendation_settings_view()
         self.create_log_view()
+        self.create_about_view()
 
     def create_view_frame(self, key):
         frame = tk.Frame(self.content_area, bg=AppTheme.CONTENT_BACKGROUND)
@@ -1903,6 +1909,20 @@ class MainWindow:
         )
         self.recommendation_settings_view.pack(fill="both", expand=True)
 
+
+    def create_about_view(self):
+        view = self.create_view_frame("about")
+        self.about_view = AboutView(
+            view,
+            about_service=self.about_service,
+            app_name=AppTheme.APP_NAME,
+            version=AppTheme.VERSION,
+            developer="Y.YB",
+            on_log=self.add_log,
+            on_status=self.set_status,
+        )
+        self.about_view.pack(fill="both", expand=True)
+
     def create_log_view(self):
         view = self.create_view_frame("log")
         body = tk.Frame(view, bg=AppTheme.CONTENT_BACKGROUND)
@@ -2042,6 +2062,7 @@ class MainWindow:
             "draw_search": ("회차조회", "특정 회차의 당첨번호와 보너스번호를 조회합니다."),
             "settings": ("추천 설정", "추천번호 생성에 사용하는 가중치와 조건을 관리합니다."),
             "log": ("시스템로그", "프로그램 실행 상태와 처리 내역을 확인합니다."),
+            "about": ("프로그램 정보", "Lotto Analyzer의 버전과 실행환경 정보를 확인합니다."),
         }
 
         title, description = page_info[key]
