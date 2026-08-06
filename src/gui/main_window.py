@@ -13,6 +13,9 @@ from src.gui.components import (
     EmptyState,
     LottoBall,
     MetricBadge,
+    SummaryCard,
+    SectionCard,
+    SummaryList,
     create_indeterminate_progress,
 )
 
@@ -508,14 +511,29 @@ class MainWindow:
         )
 
         action_card = self.create_card(body)
-        action_card.pack(fill="x", pady=(0, 14))
+        action_card.pack(fill="x", pady=(0, 10))
+
+        action_info = tk.Frame(action_card, bg=AppTheme.CARD_BACKGROUND)
+        action_info.pack(side="left", fill="both", expand=True, padx=18, pady=14)
+
         tk.Label(
-            action_card,
-            text="저장된 전체 회차를 기준으로 최신 통계 요약을 계산합니다.",
-            font=AppTheme.FONT_BODY,
+            action_info,
+            text="과거 당첨 데이터 통계 대시보드",
+            font=AppTheme.FONT_CARD_TITLE,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        ).pack(anchor="w")
+
+        self.analysis_status_label = tk.Label(
+            action_info,
+            text="대기 중 · 분석 준비 완료",
+            font=AppTheme.FONT_SMALL,
             fg=AppTheme.TEXT_SECONDARY,
-            bg=AppTheme.CARD_BACKGROUND
-        ).pack(side="left", padx=18, pady=16)
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        )
+        self.analysis_status_label.pack(anchor="w", pady=(5, 0))
 
         self.analysis_button = ttk.Button(
             action_card,
@@ -525,13 +543,420 @@ class MainWindow:
         )
         self.analysis_button.pack(side="right", padx=18, pady=15)
 
-        result_card = self.create_card(body, "통계분석 결과")
+        self.analysis_progress = create_indeterminate_progress(
+            body,
+            style="Recommendation.Horizontal.TProgressbar"
+        )
+
+        result_card = self.create_card(body, "통계분석 대시보드")
         result_card.pack(fill="both", expand=True)
 
-        self.analysis_text = scrolledtext.ScrolledText(result_card, height=24)
-        self.analysis_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
-        self.configure_text_widget(self.analysis_text)
-        self.analysis_text.insert(tk.END, "통계분석 실행 버튼을 눌러주세요.\n")
+        result_body = tk.Frame(result_card, bg=AppTheme.CARD_BACKGROUND)
+        result_body.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+
+        self.analysis_canvas = tk.Canvas(
+            result_body,
+            bg=AppTheme.CARD_BACKGROUND,
+            highlightthickness=0,
+            borderwidth=0
+        )
+        self.analysis_scrollbar = ttk.Scrollbar(
+            result_body,
+            orient="vertical",
+            command=self.analysis_canvas.yview
+        )
+        self.analysis_dashboard_frame = tk.Frame(
+            self.analysis_canvas,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+
+        self.analysis_dashboard_window = self.analysis_canvas.create_window(
+            (0, 0),
+            window=self.analysis_dashboard_frame,
+            anchor="nw"
+        )
+        self.analysis_canvas.configure(
+            yscrollcommand=self.analysis_scrollbar.set
+        )
+
+        self.analysis_canvas.pack(side="left", fill="both", expand=True)
+        self.analysis_scrollbar.pack(side="right", fill="y")
+
+        self.analysis_dashboard_frame.bind(
+            "<Configure>",
+            lambda event: self.analysis_canvas.configure(
+                scrollregion=self.analysis_canvas.bbox("all")
+            )
+        )
+        self.analysis_canvas.bind(
+            "<Configure>",
+            self._resize_analysis_dashboard_frame
+        )
+        self.analysis_canvas.bind_all(
+            "<MouseWheel>",
+            self._on_analysis_mousewheel
+        )
+
+        self.show_analysis_empty_state()
+
+    def _resize_analysis_dashboard_frame(self, event):
+        self.analysis_canvas.itemconfigure(
+            self.analysis_dashboard_window,
+            width=event.width
+        )
+
+    def _on_analysis_mousewheel(self, event):
+        if self.current_view == "analysis":
+            self.analysis_canvas.yview_scroll(
+                int(-1 * (event.delta / 120)),
+                "units"
+            )
+
+    def clear_analysis_dashboard(self):
+        for widget in self.analysis_dashboard_frame.winfo_children():
+            widget.destroy()
+
+    def show_analysis_empty_state(
+        self,
+        message="통계분석 실행 버튼을 눌러주세요."
+    ):
+        self.clear_analysis_dashboard()
+
+        empty_state = EmptyState(
+            self.analysis_dashboard_frame,
+            message=message,
+            description=(
+                "저장된 과거 당첨번호 데이터를 기준으로 주요 지표와 "
+                "패턴을 계산합니다."
+            ),
+            icon_text="A"
+        )
+        empty_state.pack(fill="both", expand=True, pady=105)
+
+    def create_dashboard_summary_card(
+        self,
+        parent,
+        column,
+        title,
+        value,
+        description,
+        accent_color
+    ):
+        card = SummaryCard(
+            parent,
+            title=title,
+            value=value,
+            description=description,
+            accent_color=accent_color
+        )
+        card.grid(
+            row=0,
+            column=column,
+            sticky="nsew",
+            padx=(0 if column == 0 else 5, 0 if column == 3 else 5)
+        )
+        return card
+
+    def create_analysis_dashboard(self, summary):
+        self.clear_analysis_dashboard()
+
+        most_common = (
+            summary["most_common_numbers"][0]
+            if summary["most_common_numbers"]
+            else None
+        )
+        hot = summary["hot_numbers"][0] if summary["hot_numbers"] else None
+        rising = (
+            summary["rising_numbers"][0]
+            if summary["rising_numbers"]
+            else None
+        )
+        missing = (
+            summary["missing_numbers"][0]
+            if summary["missing_numbers"]
+            else None
+        )
+
+        kpi_row = tk.Frame(
+            self.analysis_dashboard_frame,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        kpi_row.pack(fill="x", pady=(0, 12))
+
+        for column in range(4):
+            kpi_row.grid_columnconfigure(column, weight=1, uniform="analysis_kpi")
+
+        self.create_dashboard_summary_card(
+            kpi_row,
+            0,
+            "최다 출현 번호",
+            f"{most_common['number']}번" if most_common else "-",
+            (
+                f"{most_common['count']}회 · {most_common['rate']}%"
+                if most_common
+                else "데이터 없음"
+            ),
+            AppTheme.PRIMARY
+        )
+        self.create_dashboard_summary_card(
+            kpi_row,
+            1,
+            "최근 30회 HOT",
+            f"{hot['number']}번" if hot else "-",
+            f"{hot['count']}회 출현" if hot else "데이터 없음",
+            AppTheme.ERROR
+        )
+        self.create_dashboard_summary_card(
+            kpi_row,
+            2,
+            "상승 번호",
+            f"{rising['number']}번" if rising else "-",
+            (
+                f"최근 {rising['recent_count']}회 · 차이 {rising['diff']:+d}"
+                if rising
+                else "데이터 없음"
+            ),
+            AppTheme.SUCCESS
+        )
+        self.create_dashboard_summary_card(
+            kpi_row,
+            3,
+            "장기 미출현",
+            f"{missing['number']}번" if missing else "-",
+            (
+                f"{missing['missing_draws']}회 미출현"
+                if missing
+                else "데이터 없음"
+            ),
+            AppTheme.WARNING
+        )
+
+        sections = tk.Frame(
+            self.analysis_dashboard_frame,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        sections.pack(fill="both", expand=True)
+        sections.grid_columnconfigure(0, weight=1, uniform="analysis_section")
+        sections.grid_columnconfigure(1, weight=1, uniform="analysis_section")
+
+        frequency_card = SectionCard(
+            sections,
+            "출현빈도",
+            "전체 회차 기준 고출현 번호와 저출현 번호"
+        )
+        frequency_card.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, 6),
+            pady=(0, 12)
+        )
+        frequency_card.content.grid_columnconfigure(0, weight=1)
+        frequency_card.content.grid_columnconfigure(1, weight=1)
+
+        common_rows = [
+            {
+                "primary": f"{item['number']}번",
+                "secondary": f"{item['count']}회",
+                "detail": f"{item['rate']}%"
+            }
+            for item in summary["most_common_numbers"]
+        ]
+        least_rows = [
+            {
+                "primary": f"{item['number']}번",
+                "secondary": f"{item['count']}회",
+                "detail": f"{item['rate']}%"
+            }
+            for item in summary["least_common_numbers"]
+        ]
+
+        SummaryList(
+            frequency_card.content,
+            "전체 출현 TOP 10",
+            common_rows
+        ).grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        SummaryList(
+            frequency_card.content,
+            "전체 저출현 TOP 10",
+            least_rows
+        ).grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+
+        trend_card = SectionCard(
+            sections,
+            "최근 추세",
+            "최근 30회 HOT/COLD와 상승·하락 및 장기 미출현 번호"
+        )
+        trend_card.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(6, 0),
+            pady=(0, 12)
+        )
+        for column in range(2):
+            trend_card.content.grid_columnconfigure(column, weight=1)
+
+        hot_rows = [
+            {
+                "primary": f"{item['number']}번",
+                "secondary": f"{item['count']}회"
+            }
+            for item in summary["hot_numbers"]
+        ]
+        cold_rows = [
+            {
+                "primary": f"{item['number']}번",
+                "secondary": f"{item['count']}회"
+            }
+            for item in summary["cold_numbers"]
+        ]
+        rising_rows = [
+            {
+                "primary": f"{item['number']}번",
+                "secondary": f"{item['diff']:+d}",
+                "detail": (
+                    f"최근 {item['recent_count']} / 이전 "
+                    f"{item['previous_count']}"
+                )
+            }
+            for item in summary["rising_numbers"]
+        ]
+        missing_rows = [
+            {
+                "primary": f"{item['number']}번",
+                "secondary": f"{item['missing_draws']}회",
+                "detail": f"마지막 {item['last_seen_draw_no']}회"
+            }
+            for item in summary["missing_numbers"]
+        ]
+
+        SummaryList(
+            trend_card.content,
+            "최근 HOT",
+            hot_rows
+        ).grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=(0, 12))
+        SummaryList(
+            trend_card.content,
+            "최근 COLD",
+            cold_rows
+        ).grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=(0, 12))
+        SummaryList(
+            trend_card.content,
+            "상승 번호",
+            rising_rows
+        ).grid(row=1, column=0, sticky="nsew", padx=(0, 8))
+        SummaryList(
+            trend_card.content,
+            "장기 미출현",
+            missing_rows
+        ).grid(row=1, column=1, sticky="nsew", padx=(8, 0))
+
+        combination_card = SectionCard(
+            sections,
+            "조합 분석",
+            "과거 당첨번호에서 자주 함께 출현한 Pair와 Triple"
+        )
+        combination_card.grid(
+            row=1,
+            column=0,
+            sticky="nsew",
+            padx=(0, 6),
+            pady=(0, 12)
+        )
+        combination_card.content.grid_columnconfigure(0, weight=1)
+        combination_card.content.grid_columnconfigure(1, weight=1)
+
+        pair_rows = [
+            {
+                "primary": f"{item['pair'][0]} + {item['pair'][1]}",
+                "secondary": f"{item['count']}회",
+                "detail": f"{item['rate']}%"
+            }
+            for item in summary["top_pairs"]
+        ]
+        triple_rows = [
+            {
+                "primary": (
+                    f"{item['triple'][0]} + {item['triple'][1]} + "
+                    f"{item['triple'][2]}"
+                ),
+                "secondary": f"{item['count']}회",
+                "detail": f"{item['rate']}%"
+            }
+            for item in summary["top_triples"]
+        ]
+
+        SummaryList(
+            combination_card.content,
+            "Pair TOP 20",
+            pair_rows
+        ).grid(row=0, column=0, sticky="nsew", padx=(0, 8))
+        SummaryList(
+            combination_card.content,
+            "Triple TOP 20",
+            triple_rows
+        ).grid(row=0, column=1, sticky="nsew", padx=(8, 0))
+
+        pattern_card = SectionCard(
+            sections,
+            "패턴 분석",
+            "홀짝·고저·번호합·연속번호 패턴 분포"
+        )
+        pattern_card.grid(
+            row=1,
+            column=1,
+            sticky="nsew",
+            padx=(6, 0),
+            pady=(0, 12)
+        )
+        for column in range(2):
+            pattern_card.content.grid_columnconfigure(column, weight=1)
+
+        pattern_summary = summary["pattern_summary"]
+
+        def pattern_rows(items, suffix=""):
+            return [
+                {
+                    "primary": f"{item['pattern']}{suffix}",
+                    "secondary": f"{item['count']}회",
+                    "detail": f"{item['rate']}%"
+                }
+                for item in items
+            ]
+
+        SummaryList(
+            pattern_card.content,
+            "홀짝 패턴",
+            pattern_rows(pattern_summary["odd_even"])
+        ).grid(row=0, column=0, sticky="nsew", padx=(0, 8), pady=(0, 12))
+        SummaryList(
+            pattern_card.content,
+            "고저 패턴",
+            pattern_rows(pattern_summary["low_high"])
+        ).grid(row=0, column=1, sticky="nsew", padx=(8, 0), pady=(0, 12))
+        SummaryList(
+            pattern_card.content,
+            "번호합 구간",
+            pattern_rows(pattern_summary["sum"])
+        ).grid(row=1, column=0, sticky="nsew", padx=(0, 8))
+        SummaryList(
+            pattern_card.content,
+            "연속번호 개수",
+            pattern_rows(pattern_summary["consecutive"], "쌍")
+        ).grid(row=1, column=1, sticky="nsew", padx=(8, 0))
+
+        tk.Label(
+            self.analysis_dashboard_frame,
+            text="※ 본 통계분석은 저장된 과거 당첨번호 데이터를 기준으로 계산됩니다.",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        ).pack(fill="x", pady=(0, 4))
+
+        self.analysis_canvas.update_idletasks()
+        self.analysis_canvas.yview_moveto(0)
 
     def create_backtest_view(self):
         view = self.create_view_frame("backtest")
@@ -688,10 +1113,16 @@ class MainWindow:
 
     def run_analysis_summary(self):
         self.analysis_button.config(state="disabled")
+        self.analysis_status_label.config(
+            text="분석 중 · 통계 데이터를 계산하고 있습니다.",
+            fg=AppTheme.PRIMARY
+        )
         self.set_status("통계분석 실행 중...")
         self.add_log("통계분석 실행 시작")
-        self.analysis_text.delete("1.0", tk.END)
-        self.analysis_text.insert(tk.END, "통계분석을 실행하고 있습니다...\n")
+
+        self.show_analysis_empty_state("통계분석을 실행하고 있습니다.")
+        self.analysis_progress.pack(fill="x", pady=(0, 10))
+        self.analysis_progress.start(10)
 
         threading.Thread(
             target=self._run_analysis_summary_worker,
@@ -706,123 +1137,27 @@ class MainWindow:
             self.root.after(0, self._handle_analysis_error, e)
 
     def _display_analysis_summary(self, summary):
-        self.analysis_text.delete("1.0", tk.END)
-
-        self.analysis_text.insert(tk.END, "=" * 90 + "\n")
-        self.analysis_text.insert(tk.END, "                    통계분석 결과\n")
-        self.analysis_text.insert(tk.END, "=" * 90 + "\n\n")
-
-        self.analysis_text.insert(tk.END, "[전체 출현 빈도 TOP 10]\n")
-        for item in summary["most_common_numbers"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['number']:>2}번 - {item['count']}회 ({item['rate']}%)\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[전체 저출현 번호 TOP 10]\n")
-        for item in summary["least_common_numbers"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['number']:>2}번 - {item['count']}회 ({item['rate']}%)\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[최근 30회 HOT 번호 TOP 10]\n")
-        for item in summary["hot_numbers"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['number']:>2}번 - {item['count']}회\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[최근 30회 COLD 번호 TOP 10]\n")
-        for item in summary["cold_numbers"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['number']:>2}번 - {item['count']}회\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[상승 번호 TOP 10]\n")
-        for item in summary["rising_numbers"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['number']:>2}번 - 최근 {item['recent_count']}회 / "
-                f"이전 {item['previous_count']}회 / 차이 {item['diff']}\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[하락 번호 TOP 10]\n")
-        for item in summary["falling_numbers"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['number']:>2}번 - 최근 {item['recent_count']}회 / "
-                f"이전 {item['previous_count']}회 / 차이 {item['diff']}\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[동시 출현 번호쌍 TOP 20]\n")
-        for item in summary["top_pairs"]:
-            pair = item["pair"]
-            self.analysis_text.insert(
-                tk.END,
-                f"{pair[0]:>2}번 + {pair[1]:>2}번 - "
-                f"{item['count']}회 ({item['rate']}%)\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[3개 번호 동시 출현 TOP 20]\n")
-        for item in summary["top_triples"]:
-            triple = item["triple"]
-            self.analysis_text.insert(
-                tk.END,
-                f"{triple[0]:>2}번 + {triple[1]:>2}번 + {triple[2]:>2}번 - "
-                f"{item['count']}회 ({item['rate']}%)\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[장기 미출현 번호 TOP 10]\n")
-        for item in summary["missing_numbers"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['number']:>2}번 - {item['missing_draws']}회 미출현 / "
-                f"마지막 출현 {item['last_seen_draw_no']}회\n"
-            )
-
-        pattern_summary = summary["pattern_summary"]
-
-        self.analysis_text.insert(tk.END, "\n[홀짝 패턴 분포]\n")
-        for item in pattern_summary["odd_even"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['pattern']} - {item['count']}회 ({item['rate']}%)\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[고저 패턴 분포]\n")
-        for item in pattern_summary["low_high"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['pattern']} - {item['count']}회 ({item['rate']}%)\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[번호합 구간 분포]\n")
-        for item in pattern_summary["sum"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['pattern']} - {item['count']}회 ({item['rate']}%)\n"
-            )
-
-        self.analysis_text.insert(tk.END, "\n[연속번호 개수 분포]\n")
-        for item in pattern_summary["consecutive"]:
-            self.analysis_text.insert(
-                tk.END,
-                f"{item['pattern']}쌍 - {item['count']}회 ({item['rate']}%)\n"
-            )
-
-        self.analysis_text.insert(
-            tk.END,
-            "\n※ 본 통계분석은 저장된 과거 당첨번호 데이터를 기준으로 계산됩니다.\n"
-        )
+        self.analysis_progress.stop()
+        self.analysis_progress.pack_forget()
+        self.create_analysis_dashboard(summary)
 
         self.analysis_button.config(state="normal")
+        self.analysis_status_label.config(
+            text="완료 · 통계분석 대시보드가 갱신되었습니다.",
+            fg=AppTheme.SUCCESS
+        )
         self.set_status("통계분석 완료 | Lotto Analyzer 정상 동작 중")
         self.add_log("통계분석 완료")
 
     def _handle_analysis_error(self, error):
+        self.analysis_progress.stop()
+        self.analysis_progress.pack_forget()
         self.analysis_button.config(state="normal")
+        self.analysis_status_label.config(
+            text="오류 · 통계분석에 실패했습니다.",
+            fg=AppTheme.ERROR
+        )
+        self.show_analysis_empty_state("통계분석 중 오류가 발생했습니다.")
         self.set_status("통계분석 오류 발생")
         self.add_log(f"통계분석 오류 [{type(error).__name__}]: {error}")
         messagebox.showerror(
