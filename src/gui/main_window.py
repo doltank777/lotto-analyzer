@@ -970,14 +970,29 @@ class MainWindow:
         )
 
         action_card = self.create_card(body)
-        action_card.pack(fill="x", pady=(0, 14))
+        action_card.pack(fill="x", pady=(0, 10))
+
+        action_info = tk.Frame(action_card, bg=AppTheme.CARD_BACKGROUND)
+        action_info.pack(side="left", fill="both", expand=True, padx=18, pady=14)
+
         tk.Label(
-            action_card,
-            text="최근 10회 기준 최종 추천번호 백테스트를 실행합니다.",
-            font=AppTheme.FONT_BODY,
+            action_info,
+            text="최근 10회 추천번호 성능 리포트",
+            font=AppTheme.FONT_CARD_TITLE,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        ).pack(anchor="w")
+
+        self.backtest_status_label = tk.Label(
+            action_info,
+            text="대기 중 · 백테스트 준비 완료",
+            font=AppTheme.FONT_SMALL,
             fg=AppTheme.TEXT_SECONDARY,
-            bg=AppTheme.CARD_BACKGROUND
-        ).pack(side="left", padx=18, pady=16)
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        )
+        self.backtest_status_label.pack(anchor="w", pady=(5, 0))
 
         self.backtest_button = ttk.Button(
             action_card,
@@ -987,18 +1002,304 @@ class MainWindow:
         )
         self.backtest_button.pack(side="right", padx=18, pady=15)
 
-        result_card = self.create_card(body, "백테스트 결과")
+        self.backtest_progress = create_indeterminate_progress(
+            body,
+            style="Recommendation.Horizontal.TProgressbar"
+        )
+
+        result_card = self.create_card(body, "백테스트 대시보드")
         result_card.pack(fill="both", expand=True)
 
-        self.backtest_text = scrolledtext.ScrolledText(result_card, height=24)
-        self.backtest_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
-        self.configure_text_widget(self.backtest_text)
-        self.backtest_text.insert(
-            tk.END,
-            "최근 10회 기준 백테스트를 실행할 수 있습니다.\n\n"
-            "출력 항목\n- 평균 일치 개수\n- 최고 일치 개수\n- 번호 적중률\n"
-            "- 등수 및 일치 개수 분포\n- 점수 구간별 결과\n"
+        result_body = tk.Frame(result_card, bg=AppTheme.CARD_BACKGROUND)
+        result_body.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+
+        self.backtest_canvas = tk.Canvas(
+            result_body,
+            bg=AppTheme.CARD_BACKGROUND,
+            highlightthickness=0,
+            borderwidth=0
         )
+        self.backtest_scrollbar = ttk.Scrollbar(
+            result_body,
+            orient="vertical",
+            command=self.backtest_canvas.yview
+        )
+        self.backtest_dashboard_frame = tk.Frame(
+            self.backtest_canvas,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+
+        self.backtest_dashboard_window = self.backtest_canvas.create_window(
+            (0, 0),
+            window=self.backtest_dashboard_frame,
+            anchor="nw"
+        )
+        self.backtest_canvas.configure(
+            yscrollcommand=self.backtest_scrollbar.set
+        )
+
+        self.backtest_canvas.pack(side="left", fill="both", expand=True)
+        self.backtest_scrollbar.pack(side="right", fill="y")
+
+        self.backtest_dashboard_frame.bind(
+            "<Configure>",
+            lambda event: self.backtest_canvas.configure(
+                scrollregion=self.backtest_canvas.bbox("all")
+            )
+        )
+        self.backtest_canvas.bind(
+            "<Configure>",
+            self._resize_backtest_dashboard_frame
+        )
+        self.backtest_canvas.bind_all(
+            "<MouseWheel>",
+            self._on_backtest_mousewheel
+        )
+
+        self.show_backtest_empty_state()
+
+    def _resize_backtest_dashboard_frame(self, event):
+        self.backtest_canvas.itemconfigure(
+            self.backtest_dashboard_window,
+            width=event.width
+        )
+
+    def _on_backtest_mousewheel(self, event):
+        if self.current_view == "backtest":
+            self.backtest_canvas.yview_scroll(
+                int(-1 * (event.delta / 120)),
+                "units"
+            )
+
+    def clear_backtest_dashboard(self):
+        for widget in self.backtest_dashboard_frame.winfo_children():
+            widget.destroy()
+
+    def show_backtest_empty_state(
+        self,
+        message="백테스트 실행 버튼을 눌러주세요."
+    ):
+        self.clear_backtest_dashboard()
+
+        empty_state = EmptyState(
+            self.backtest_dashboard_frame,
+            message=message,
+            description=(
+                "최근 10회 기준 추천번호 생성 결과의 평균 적중, 최고 적중, "
+                "적중률과 분포를 계산합니다."
+            ),
+            icon_text="B"
+        )
+        empty_state.pack(fill="both", expand=True, pady=105)
+
+    def create_backtest_dashboard(self, data):
+        self.clear_backtest_dashboard()
+
+        summary = data["summary"]
+
+        kpi_row = tk.Frame(
+            self.backtest_dashboard_frame,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        kpi_row.pack(fill="x", pady=(0, 12))
+
+        for column in range(4):
+            kpi_row.grid_columnconfigure(
+                column,
+                weight=1,
+                uniform="backtest_kpi"
+            )
+
+        cards = [
+            (
+                "평균 일치",
+                f"{summary['average_match_count']}개",
+                "전체 추천번호 기준",
+                AppTheme.PRIMARY
+            ),
+            (
+                "최고 일치",
+                f"{summary['max_match_count']}개",
+                f"회차별 최고 {summary['best_max_match_count']}개",
+                AppTheme.SUCCESS
+            ),
+            (
+                "번호 적중률",
+                f"{summary['number_hit_rate']}%",
+                "전체 추천번호 기준",
+                AppTheme.WARNING
+            ),
+            (
+                "테스트 회차",
+                f"{summary['test_count']}회",
+                f"추천번호 {summary['total_recommendation_count']}개",
+                AppTheme.ERROR
+            ),
+        ]
+
+        for column, (title, value, description, color) in enumerate(cards):
+            card = SummaryCard(
+                kpi_row,
+                title=title,
+                value=value,
+                description=description,
+                accent_color=color
+            )
+            card.grid(
+                row=0,
+                column=column,
+                sticky="nsew",
+                padx=(0 if column == 0 else 5, 0 if column == 3 else 5)
+            )
+
+        sections = tk.Frame(
+            self.backtest_dashboard_frame,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        sections.pack(fill="both", expand=True)
+        sections.grid_columnconfigure(0, weight=1, uniform="backtest_section")
+        sections.grid_columnconfigure(1, weight=1, uniform="backtest_section")
+
+        rank_rows = [
+            {
+                "primary": str(rank),
+                "secondary": f"{count}세트"
+            }
+            for rank, count in summary["rank_counts"].items()
+        ]
+
+        match_rows = [
+            {
+                "primary": f"{match}개 일치",
+                "secondary": f"{count}세트"
+            }
+            for match, count in summary["match_count_distribution"].items()
+        ]
+
+        rank_card = SectionCard(
+            sections,
+            "등수 분포",
+            "전체 추천번호의 등수별 발생 횟수"
+        )
+        rank_card.grid(
+            row=0,
+            column=0,
+            sticky="nsew",
+            padx=(0, 6),
+            pady=(0, 12)
+        )
+        SummaryList(
+            rank_card.content,
+            "등수별 결과",
+            rank_rows
+        ).pack(fill="both", expand=True)
+
+        match_card = SectionCard(
+            sections,
+            "일치 개수 분포",
+            "추천번호와 실제 당첨번호의 일치 개수별 분포"
+        )
+        match_card.grid(
+            row=0,
+            column=1,
+            sticky="nsew",
+            padx=(6, 0),
+            pady=(0, 12)
+        )
+        SummaryList(
+            match_card.content,
+            "일치 결과",
+            match_rows
+        ).pack(fill="both", expand=True)
+
+        score_card = SectionCard(
+            sections,
+            "점수 구간별 결과",
+            "추천 점수 구간별 평균·최고 일치 및 3개 이상 성공률"
+        )
+        score_card.grid(
+            row=1,
+            column=0,
+            columnspan=2,
+            sticky="nsew",
+            pady=(0, 12)
+        )
+
+        score_rows = []
+        for score, stat in summary["score_range_stats"].items():
+            success_rate = 0
+            if stat["count"] > 0:
+                success_rate = round(
+                    stat["three_or_more_count"] / stat["count"] * 100,
+                    2
+                )
+
+            score_rows.append(
+                {
+                    "primary": f"{score}점 구간",
+                    "secondary": f"{success_rate}%",
+                    "detail": (
+                        f"{stat['count']}개 · 평균 "
+                        f"{stat['average_match_count']}개 · 최고 "
+                        f"{stat['max_match_count']}개"
+                    )
+                }
+            )
+
+        SummaryList(
+            score_card.content,
+            "3개 이상 일치 성공률",
+            score_rows
+        ).pack(fill="both", expand=True)
+
+        best_card = SectionCard(
+            sections,
+            "회차별 최고 결과",
+            "각 대상 회차에서 가장 높은 적중 결과를 기준으로 계산"
+        )
+        best_card.grid(
+            row=2,
+            column=0,
+            columnspan=2,
+            sticky="nsew",
+            pady=(0, 12)
+        )
+
+        best_rows = [
+            {
+                "primary": "회차별 최고 결과 평균 일치",
+                "secondary": f"{summary['best_average_match_count']}개"
+            },
+            {
+                "primary": "회차별 최고 결과 최대 일치",
+                "secondary": f"{summary['best_max_match_count']}개"
+            },
+            {
+                "primary": "전체 추천 최고 일치",
+                "secondary": f"{summary['max_match_count']}개"
+            },
+        ]
+
+        SummaryList(
+            best_card.content,
+            "핵심 결과",
+            best_rows
+        ).pack(fill="both", expand=True)
+
+        tk.Label(
+            self.backtest_dashboard_frame,
+            text=(
+                "※ 각 대상 회차 이전 데이터만 사용하여 최종 추천번호 "
+                "5세트를 생성한 결과입니다."
+            ),
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        ).pack(fill="x", pady=(0, 4))
+
+        self.backtest_canvas.update_idletasks()
+        self.backtest_canvas.yview_moveto(0)
 
     def create_draw_search_view(self):
         view = self.create_view_frame("draw_search")
@@ -1313,14 +1614,16 @@ class MainWindow:
 
     def run_backtest(self):
         self.backtest_button.config(state="disabled")
+        self.backtest_status_label.config(
+            text="분석 중 · 백테스트를 실행하고 있습니다.",
+            fg=AppTheme.PRIMARY
+        )
         self.set_status("백테스트 실행 중...")
         self.add_log("백테스트 시작")
 
-        self.backtest_text.delete("1.0", tk.END)
-        self.backtest_text.insert(
-            tk.END,
-            "최근 10회 기준 최종 추천번호 백테스트를 실행하고 있습니다...\n"
-        )
+        self.show_backtest_empty_state("백테스트를 실행하고 있습니다.")
+        self.backtest_progress.pack(fill="x", pady=(0, 10))
+        self.backtest_progress.start(10)
 
         threading.Thread(
             target=self._run_backtest_worker,
@@ -1335,95 +1638,27 @@ class MainWindow:
             self.root.after(0, self._handle_backtest_error, e)
 
     def _display_backtest_result(self, data):
-        summary = data["summary"]
-        self.backtest_text.delete("1.0", tk.END)
-
-        self.backtest_text.insert(tk.END, "=" * 90 + "\n")
-        self.backtest_text.insert(tk.END, "                 백테스트 결과\n")
-        self.backtest_text.insert(tk.END, "=" * 90 + "\n\n")
-
-        self.backtest_text.insert(
-            tk.END,
-            f"테스트 회차 : {summary['test_count']}회\n"
-        )
-        self.backtest_text.insert(
-            tk.END,
-            f"추천번호 개수 : {summary['total_recommendation_count']}개\n"
-        )
-        self.backtest_text.insert(
-            tk.END,
-            f"평균 일치 개수 : {summary['average_match_count']}개\n"
-        )
-        self.backtest_text.insert(
-            tk.END,
-            f"전체 추천 최고 일치 개수 : {summary['max_match_count']}개\n"
-        )
-        self.backtest_text.insert(
-            tk.END,
-            f"회차별 최고 결과 평균 일치 : {summary['best_average_match_count']}개\n"
-        )
-        self.backtest_text.insert(
-            tk.END,
-            f"회차별 최고 결과 최대 일치 : {summary['best_max_match_count']}개\n"
-        )
-        self.backtest_text.insert(
-            tk.END,
-            f"번호 적중률 : {summary['number_hit_rate']}%\n\n"
-        )
-
-        self.backtest_text.insert(tk.END, "[등수 분포]\n")
-        for rank, count in summary["rank_counts"].items():
-            self.backtest_text.insert(tk.END, f"{rank} : {count}세트\n")
-
-        self.backtest_text.insert(tk.END, "\n[일치 개수 분포]\n")
-        for match, count in summary["match_count_distribution"].items():
-            self.backtest_text.insert(
-                tk.END,
-                f"{match}개 일치 : {count}세트\n"
-            )
-
-        self.backtest_text.insert(tk.END, "\n[점수 구간별 결과]\n")
-        for score, stat in summary["score_range_stats"].items():
-            success_rate = 0
-            if stat["count"] > 0:
-                success_rate = round(
-                    stat["three_or_more_count"] / stat["count"] * 100,
-                    2
-                )
-
-            self.backtest_text.insert(tk.END, f"{score}점 구간\n")
-            self.backtest_text.insert(
-                tk.END,
-                f"  추천 개수       : {stat['count']}개\n"
-            )
-            self.backtest_text.insert(
-                tk.END,
-                f"  평균 일치       : {stat['average_match_count']}개\n"
-            )
-            self.backtest_text.insert(
-                tk.END,
-                f"  최고 일치       : {stat['max_match_count']}개\n"
-            )
-            self.backtest_text.insert(
-                tk.END,
-                f"  3개 이상 일치   : {stat['three_or_more_count']}개\n"
-            )
-            self.backtest_text.insert(
-                tk.END,
-                f"  3개 이상 성공률 : {success_rate}%\n\n"
-            )
-
-        self.backtest_text.insert(
-            tk.END,
-            "※ 각 대상 회차 이전 데이터만 사용하여 최종 추천번호 5세트를 생성한 결과입니다.\n"
-        )
+        self.backtest_progress.stop()
+        self.backtest_progress.pack_forget()
+        self.create_backtest_dashboard(data)
 
         self.backtest_button.config(state="normal")
+        self.backtest_status_label.config(
+            text="완료 · 백테스트 대시보드가 갱신되었습니다.",
+            fg=AppTheme.SUCCESS
+        )
         self.set_status("백테스트 완료 | Lotto Analyzer 정상 동작 중")
         self.add_log("백테스트 완료")
 
     def _handle_backtest_error(self, error):
+        self.backtest_progress.stop()
+        self.backtest_progress.pack_forget()
         self.backtest_button.config(state="normal")
+        self.backtest_status_label.config(
+            text="오류 · 백테스트에 실패했습니다.",
+            fg=AppTheme.ERROR
+        )
+        self.show_backtest_empty_state("백테스트 중 오류가 발생했습니다.")
         self.set_status("백테스트 오류 발생")
         self.add_log(f"백테스트 오류 [{type(error).__name__}]: {error}")
         messagebox.showerror(
