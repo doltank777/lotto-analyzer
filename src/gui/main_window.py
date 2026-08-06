@@ -1,6 +1,6 @@
 import tkinter as tk
 import threading
-from tkinter import messagebox, scrolledtext, ttk
+from tkinter import filedialog, messagebox, scrolledtext, ttk
 from datetime import datetime
 
 from src.app.recommendation_service import RecommendationService
@@ -1628,16 +1628,119 @@ class MainWindow:
             "프로그램 실행 상태와 각 기능의 처리 내역을 시간순으로 확인합니다."
         )
 
+        toolbar_card = self.create_card(body)
+        toolbar_card.pack(fill="x", pady=(0, 14))
+
+        toolbar_info = tk.Frame(
+            toolbar_card,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        toolbar_info.pack(
+            side="left",
+            fill="both",
+            expand=True,
+            padx=18,
+            pady=14
+        )
+
+        tk.Label(
+            toolbar_info,
+            text="실행 로그 관리",
+            font=AppTheme.FONT_CARD_TITLE,
+            fg=AppTheme.TEXT_PRIMARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        ).pack(anchor="w")
+
+        self.log_count_label = tk.Label(
+            toolbar_info,
+            text="로그 0건",
+            font=AppTheme.FONT_SMALL,
+            fg=AppTheme.TEXT_SECONDARY,
+            bg=AppTheme.CARD_BACKGROUND,
+            anchor="w"
+        )
+        self.log_count_label.pack(anchor="w", pady=(5, 0))
+
+        toolbar_actions = tk.Frame(
+            toolbar_card,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        toolbar_actions.pack(side="right", padx=18, pady=14)
+
+        self.save_log_button = ttk.Button(
+            toolbar_actions,
+            text="로그 저장",
+            style="Secondary.TButton",
+            command=self.save_logs
+        )
+        self.save_log_button.pack(side="left", padx=(0, 8))
+
+        self.clear_log_button = ttk.Button(
+            toolbar_actions,
+            text="로그 지우기",
+            style="Secondary.TButton",
+            command=self.clear_logs
+        )
+        self.clear_log_button.pack(side="left")
+
         result_card = self.create_card(body, "실행 로그")
         result_card.pack(fill="both", expand=True)
 
-        self.log_text = scrolledtext.ScrolledText(result_card, height=28)
-        self.log_text.pack(fill="both", expand=True, padx=18, pady=(0, 18))
+        log_container = tk.Frame(
+            result_card,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        log_container.pack(
+            fill="both",
+            expand=True,
+            padx=18,
+            pady=(0, 18)
+        )
+
+        self.log_text = scrolledtext.ScrolledText(
+            log_container,
+            height=28,
+            wrap="word",
+            state="disabled"
+        )
+        self.log_text.pack(fill="both", expand=True)
         self.configure_text_widget(self.log_text)
 
-        self.add_log("프로그램 시작")
-        self.add_log("모던 GUI 디자인 시스템 초기화 완료")
-        self.add_log("화면 및 Service 연결 완료")
+        self.log_text.tag_configure(
+            "timestamp",
+            foreground=AppTheme.TEXT_MUTED
+        )
+        self.log_text.tag_configure(
+            "level_info",
+            foreground=AppTheme.PRIMARY,
+            font=(AppTheme.MONO_FONT_FAMILY, 10, "bold")
+        )
+        self.log_text.tag_configure(
+            "level_success",
+            foreground=AppTheme.SUCCESS,
+            font=(AppTheme.MONO_FONT_FAMILY, 10, "bold")
+        )
+        self.log_text.tag_configure(
+            "level_warning",
+            foreground=AppTheme.WARNING,
+            font=(AppTheme.MONO_FONT_FAMILY, 10, "bold")
+        )
+        self.log_text.tag_configure(
+            "level_error",
+            foreground=AppTheme.ERROR,
+            font=(AppTheme.MONO_FONT_FAMILY, 10, "bold")
+        )
+        self.log_text.tag_configure(
+            "message",
+            foreground=AppTheme.TEXT_PRIMARY
+        )
+
+        self.log_count = 0
+
+        self.add_log("프로그램 시작", "INFO")
+        self.add_log("모던 GUI 디자인 시스템 초기화 완료", "SUCCESS")
+        self.add_log("화면 및 Service 연결 완료", "SUCCESS")
 
     def show_view(self, key):
         if key not in self.views:
@@ -1708,7 +1811,7 @@ class MainWindow:
             fg=AppTheme.SUCCESS
         )
         self.set_status("통계분석 완료 | Lotto Analyzer 정상 동작 중")
-        self.add_log("통계분석 완료")
+        self.add_log("통계분석 완료", "SUCCESS")
 
     def _handle_analysis_error(self, error):
         self.analysis_progress.stop()
@@ -1720,7 +1823,7 @@ class MainWindow:
         )
         self.show_analysis_empty_state("통계분석 중 오류가 발생했습니다.")
         self.set_status("통계분석 오류 발생")
-        self.add_log(f"통계분석 오류 [{type(error).__name__}]: {error}")
+        self.add_log(f"통계분석 오류 [{type(error).__name__}]: {error}", "ERROR")
         messagebox.showerror(
             "오류",
             f"통계분석 중 오류가 발생했습니다.\n\n{error}"
@@ -1783,7 +1886,7 @@ class MainWindow:
             fg=AppTheme.SUCCESS
         )
         self.set_status("추천번호 생성 완료 | Lotto Analyzer 정상 동작 중")
-        self.add_log("추천번호 생성 완료")
+        self.add_log("추천번호 생성 완료", "SUCCESS")
 
     def _handle_recommendation_error(self, error):
         self.recommend_progress.stop()
@@ -1795,7 +1898,7 @@ class MainWindow:
         )
         self.show_recommend_empty_state("추천번호 생성 중 오류가 발생했습니다.")
         self.set_status("추천번호 생성 오류 발생")
-        self.add_log(f"추천번호 생성 오류 [{type(error).__name__}]: {error}")
+        self.add_log(f"추천번호 생성 오류 [{type(error).__name__}]: {error}", "ERROR")
         messagebox.showerror(
             "오류",
             f"추천번호 생성 중 오류가 발생했습니다.\n\n{error}"
@@ -1840,7 +1943,7 @@ class MainWindow:
                     fg=AppTheme.WARNING
                 )
                 self.set_status("회차조회 결과 없음")
-                self.add_log(f"{draw_no}회 당첨번호 조회 결과 없음")
+                self.add_log(f"{draw_no}회 당첨번호 조회 결과 없음", "WARNING")
                 return
 
             self.create_draw_result_card(result)
@@ -1850,7 +1953,7 @@ class MainWindow:
                 fg=AppTheme.SUCCESS
             )
             self.set_status(f"{draw_no}회 당첨번호 조회 완료")
-            self.add_log(f"{draw_no}회 당첨번호 조회 완료")
+            self.add_log(f"{draw_no}회 당첨번호 조회 완료", "SUCCESS")
 
         except Exception as e:
             self.show_draw_search_empty_state(
@@ -1873,11 +1976,117 @@ class MainWindow:
         finally:
             self.draw_search_button.config(state="normal")
 
-    def add_log(self, message):
-        if hasattr(self, "log_text"):
-            now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            self.log_text.insert(tk.END, f"[{now}] {message}\n")
-            self.log_text.see(tk.END)
+    def add_log(self, message, level="INFO"):
+        if not hasattr(self, "log_text"):
+            return
+
+        normalized_level = str(level).upper()
+        supported_levels = {
+            "INFO": "level_info",
+            "SUCCESS": "level_success",
+            "WARNING": "level_warning",
+            "ERROR": "level_error",
+        }
+
+        if normalized_level not in supported_levels:
+            normalized_level = "INFO"
+
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        self.log_text.config(state="normal")
+        self.log_text.insert(tk.END, f"[{now}] ", "timestamp")
+        self.log_text.insert(
+            tk.END,
+            f"[{normalized_level}] ",
+            supported_levels[normalized_level]
+        )
+        self.log_text.insert(tk.END, f"{message}\n", "message")
+        self.log_text.config(state="disabled")
+        self.log_text.see(tk.END)
+
+        self.log_count += 1
+        self.update_log_count()
+
+    def update_log_count(self):
+        if hasattr(self, "log_count_label"):
+            self.log_count_label.config(
+                text=f"로그 {self.log_count}건"
+            )
+
+    def clear_logs(self):
+        if not hasattr(self, "log_text"):
+            return
+
+        if self.log_count == 0:
+            messagebox.showinfo(
+                "시스템로그",
+                "지울 로그가 없습니다."
+            )
+            return
+
+        confirmed = messagebox.askyesno(
+            "로그 지우기",
+            "현재 표시된 시스템로그를 모두 지우시겠습니까?"
+        )
+
+        if not confirmed:
+            return
+
+        self.log_text.config(state="normal")
+        self.log_text.delete("1.0", tk.END)
+        self.log_text.config(state="disabled")
+
+        self.log_count = 0
+        self.update_log_count()
+        self.set_status("시스템로그를 지웠습니다.")
+
+    def save_logs(self):
+        if not hasattr(self, "log_text"):
+            return
+
+        log_content = self.log_text.get("1.0", tk.END).strip()
+
+        if not log_content:
+            messagebox.showinfo(
+                "로그 저장",
+                "저장할 로그가 없습니다."
+            )
+            return
+
+        default_name = (
+            f"lotto_analyzer_log_"
+            f"{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+        )
+
+        file_path = filedialog.asksaveasfilename(
+            title="시스템로그 저장",
+            defaultextension=".txt",
+            initialfile=default_name,
+            filetypes=[
+                ("텍스트 파일", "*.txt"),
+                ("모든 파일", "*.*"),
+            ]
+        )
+
+        if not file_path:
+            return
+
+        try:
+            Path(file_path).write_text(
+                log_content + "\n",
+                encoding="utf-8"
+            )
+            self.set_status("시스템로그 저장 완료")
+            messagebox.showinfo(
+                "로그 저장",
+                f"시스템로그를 저장했습니다.\n\n{file_path}"
+            )
+        except OSError as error:
+            self.set_status("시스템로그 저장 오류")
+            messagebox.showerror(
+                "로그 저장 오류",
+                f"시스템로그 저장 중 오류가 발생했습니다.\n\n{error}"
+            )
 
     def run(self):
         self.root.mainloop()
@@ -1918,7 +2127,7 @@ class MainWindow:
             fg=AppTheme.SUCCESS
         )
         self.set_status("백테스트 완료 | Lotto Analyzer 정상 동작 중")
-        self.add_log("백테스트 완료")
+        self.add_log("백테스트 완료", "SUCCESS")
 
     def _handle_backtest_error(self, error):
         self.backtest_progress.stop()
@@ -1930,7 +2139,7 @@ class MainWindow:
         )
         self.show_backtest_empty_state("백테스트 중 오류가 발생했습니다.")
         self.set_status("백테스트 오류 발생")
-        self.add_log(f"백테스트 오류 [{type(error).__name__}]: {error}")
+        self.add_log(f"백테스트 오류 [{type(error).__name__}]: {error}", "ERROR")
         messagebox.showerror(
             "오류",
             f"백테스트 중 오류가 발생했습니다.\n\n{error}"
