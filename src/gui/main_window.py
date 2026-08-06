@@ -1631,7 +1631,9 @@ class MainWindow:
         view = self.create_view_frame("settings")
         self.recommendation_settings_view = RecommendationSettingsView(
             view,
-            recommendation_service=self.recommendation_service
+            recommendation_service=self.recommendation_service,
+            on_log=self.add_log,
+            on_status=self.set_status,
         )
         self.recommendation_settings_view.pack(fill="both", expand=True)
 
