@@ -1,3 +1,4 @@
+from src.gui.components.chart import ChartCard
 from src.gui.components.card import AppCard, SummaryCard
 from src.gui.components.empty_state import EmptyState
 from src.gui.components.lotto_ball import LottoBall
@@ -6,6 +7,7 @@ from src.gui.components.progress import create_indeterminate_progress
 from src.gui.components.section import SectionCard, SummaryList
 
 __all__ = [
+    "ChartCard",
     "AppCard",
     "SummaryCard",
     "EmptyState",
