@@ -11,6 +11,7 @@ from src.app.analysis_service import AnalysisService
 from src.app.backtest_service import BacktestService
 from src.app.about_service import AboutService
 from src.gui.theme import AppTheme
+from src.gui.resources import get_resource_path
 from src.gui.views import RecommendationSettingsView
 from src.gui.views.about_view import AboutView
 from src.gui.components import (
@@ -33,6 +34,7 @@ class MainWindow:
         self.root.geometry(f"{AppTheme.WINDOW_WIDTH}x{AppTheme.WINDOW_HEIGHT}")
         self.root.minsize(AppTheme.WINDOW_WIDTH, AppTheme.WINDOW_HEIGHT)
         self.root.configure(bg=AppTheme.APP_BACKGROUND)
+        self.apply_window_icon()
 
         self.recommendation_service = RecommendationService()
         self.recommendation_export_service = RecommendationExportService()
@@ -47,6 +49,19 @@ class MainWindow:
         self.current_view = None
 
         self.create_widgets()
+
+    def apply_window_icon(self):
+        """개발 환경과 PyInstaller 실행 환경에서 공통 아이콘을 적용합니다."""
+        icon_path = get_resource_path("assets", "LottoAnalyzer.ico")
+
+        if not icon_path.exists():
+            return
+
+        try:
+            self.root.iconbitmap(default=str(icon_path))
+        except tk.TclError:
+            # 아이콘 적용 실패가 프로그램 실행 실패로 이어지지 않도록 합니다.
+            pass
 
     def create_widgets(self):
         self.create_styles()
