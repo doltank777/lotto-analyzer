@@ -1,5 +1,6 @@
 import tkinter as tk
 
+from matplotlib import font_manager
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from matplotlib.figure import Figure
 
@@ -32,12 +33,46 @@ class ChartCard(tk.Frame):
         self.figure = None
         self.axes = None
 
+        self.chart_font = self._get_chart_font()
+
         self._build_header()
         self._build_chart_area()
 
+    def _get_chart_font(self):
+        """
+        Matplotlib 차트에서 사용할 한글 폰트를 반환한다.
+
+        Windows 환경에서는 맑은 고딕을 우선 사용하고,
+        사용할 수 없는 경우 Matplotlib 기본 폰트를 사용한다.
+        """
+        preferred_fonts = [
+            "Malgun Gothic",
+            "맑은 고딕",
+        ]
+
+        installed_fonts = {
+            font.name
+            for font in font_manager.fontManager.ttflist
+        }
+
+        for font_name in preferred_fonts:
+            if font_name in installed_fonts:
+                return font_manager.FontProperties(
+                    family=font_name
+                )
+
+        return font_manager.FontProperties()
+
     def _build_header(self):
-        header = tk.Frame(self, bg=AppTheme.CARD_BACKGROUND)
-        header.pack(fill="x", padx=16, pady=(14, 10))
+        header = tk.Frame(
+            self,
+            bg=AppTheme.CARD_BACKGROUND
+        )
+        header.pack(
+            fill="x",
+            padx=16,
+            pady=(14, 10)
+        )
 
         tk.Label(
             header,
@@ -56,7 +91,10 @@ class ChartCard(tk.Frame):
                 fg=AppTheme.TEXT_SECONDARY,
                 bg=AppTheme.CARD_BACKGROUND,
                 anchor="w"
-            ).pack(fill="x", pady=(4, 0))
+            ).pack(
+                fill="x",
+                pady=(4, 0)
+            )
 
         tk.Frame(
             self,
@@ -84,11 +122,14 @@ class ChartCard(tk.Frame):
             dpi=100,
             facecolor=AppTheme.CARD_BACKGROUND
         )
+
         self.axes = self.figure.add_subplot(111)
+
         self.canvas = FigureCanvasTkAgg(
             self.figure,
             master=self.chart_container
         )
+
         self.canvas.get_tk_widget().pack(
             fill="both",
             expand=True
@@ -97,13 +138,16 @@ class ChartCard(tk.Frame):
         self._apply_axes_style()
 
     def _apply_axes_style(self):
-        self.axes.set_facecolor(AppTheme.CARD_BACKGROUND)
+        self.axes.set_facecolor(
+            AppTheme.CARD_BACKGROUND
+        )
 
         self.axes.tick_params(
             axis="x",
             colors=AppTheme.TEXT_SECONDARY,
             labelsize=9
         )
+
         self.axes.tick_params(
             axis="y",
             colors=AppTheme.TEXT_SECONDARY,
@@ -111,7 +155,9 @@ class ChartCard(tk.Frame):
         )
 
         for spine in self.axes.spines.values():
-            spine.set_color(AppTheme.BORDER)
+            spine.set_color(
+                AppTheme.BORDER
+            )
 
         self.axes.grid(
             axis="y",
@@ -119,7 +165,34 @@ class ChartCard(tk.Frame):
             linewidth=0.8,
             alpha=0.9
         )
+
         self.axes.set_axisbelow(True)
+
+    def _apply_text_font(self):
+        """
+        축 눈금 및 축 제목에 공통 한글 폰트를 적용한다.
+        """
+        for label in self.axes.get_xticklabels():
+            label.set_fontproperties(
+                self.chart_font
+            )
+
+        for label in self.axes.get_yticklabels():
+            label.set_fontproperties(
+                self.chart_font
+            )
+
+        self.axes.xaxis.label.set_fontproperties(
+            self.chart_font
+        )
+
+        self.axes.yaxis.label.set_fontproperties(
+            self.chart_font
+        )
+
+        self.axes.title.set_fontproperties(
+            self.chart_font
+        )
 
     def clear(self):
         self.axes.clear()
@@ -140,7 +213,11 @@ class ChartCard(tk.Frame):
             self.show_empty_state()
             return
 
-        bar_color = color or AppTheme.PRIMARY
+        bar_color = (
+            color
+            or AppTheme.PRIMARY
+        )
+
         bars = self.axes.bar(
             labels,
             values,
@@ -151,7 +228,8 @@ class ChartCard(tk.Frame):
             self.axes.set_ylabel(
                 y_label,
                 color=AppTheme.TEXT_SECONDARY,
-                fontsize=9
+                fontsize=9,
+                fontproperties=self.chart_font
             )
 
         if rotate_labels:
@@ -164,6 +242,7 @@ class ChartCard(tk.Frame):
             bars,
             value_format=value_format
         )
+
         self._finish_draw()
 
     def draw_horizontal_bar_chart(
@@ -180,7 +259,11 @@ class ChartCard(tk.Frame):
             self.show_empty_state()
             return
 
-        bar_color = color or AppTheme.PRIMARY
+        bar_color = (
+            color
+            or AppTheme.PRIMARY
+        )
+
         bars = self.axes.barh(
             labels,
             values,
@@ -191,14 +274,17 @@ class ChartCard(tk.Frame):
             self.axes.set_xlabel(
                 x_label,
                 color=AppTheme.TEXT_SECONDARY,
-                fontsize=9
+                fontsize=9,
+                fontproperties=self.chart_font
             )
 
         self.axes.invert_yaxis()
+
         self._add_horizontal_bar_value_labels(
             bars,
             value_format=value_format
         )
+
         self._finish_draw()
 
     def draw_line_chart(
@@ -215,7 +301,11 @@ class ChartCard(tk.Frame):
             self.show_empty_state()
             return
 
-        line_color = color or AppTheme.PRIMARY
+        line_color = (
+            color
+            or AppTheme.PRIMARY
+        )
+
         self.axes.plot(
             labels,
             values,
@@ -229,7 +319,8 @@ class ChartCard(tk.Frame):
             self.axes.set_ylabel(
                 y_label,
                 color=AppTheme.TEXT_SECONDARY,
-                fontsize=9
+                fontsize=9,
+                fontproperties=self.chart_font
             )
 
         self._finish_draw()
@@ -242,9 +333,16 @@ class ChartCard(tk.Frame):
         autopct="%1.1f%%"
     ):
         self.axes.clear()
-        self.axes.set_facecolor(AppTheme.CARD_BACKGROUND)
 
-        if not labels or not values or sum(values) <= 0:
+        self.axes.set_facecolor(
+            AppTheme.CARD_BACKGROUND
+        )
+
+        if (
+            not labels
+            or not values
+            or sum(values) <= 0
+        ):
             self.show_empty_state()
             return
 
@@ -264,20 +362,33 @@ class ChartCard(tk.Frame):
             startangle=90,
             wedgeprops={
                 "linewidth": 1,
-                "edgecolor": AppTheme.CARD_BACKGROUND,
+                "edgecolor": (
+                    AppTheme.CARD_BACKGROUND
+                ),
             }
         )
 
         for text in texts:
-            text.set_color(AppTheme.TEXT_PRIMARY)
+            text.set_color(
+                AppTheme.TEXT_PRIMARY
+            )
             text.set_fontsize(9)
+            text.set_fontproperties(
+                self.chart_font
+            )
 
         for text in autotexts:
-            text.set_color(AppTheme.TEXT_INVERSE)
+            text.set_color(
+                AppTheme.TEXT_INVERSE
+            )
             text.set_fontsize(8)
             text.set_fontweight("bold")
+            text.set_fontproperties(
+                self.chart_font
+            )
 
         self.axes.axis("equal")
+
         self._finish_draw()
 
     def show_empty_state(
@@ -285,7 +396,11 @@ class ChartCard(tk.Frame):
         message="표시할 차트 데이터가 없습니다."
     ):
         self.axes.clear()
-        self.axes.set_facecolor(AppTheme.CARD_BACKGROUND)
+
+        self.axes.set_facecolor(
+            AppTheme.CARD_BACKGROUND
+        )
+
         self.axes.text(
             0.5,
             0.5,
@@ -294,8 +409,10 @@ class ChartCard(tk.Frame):
             va="center",
             color=AppTheme.TEXT_SECONDARY,
             fontsize=10,
+            fontproperties=self.chart_font,
             transform=self.axes.transAxes
         )
+
         self.axes.set_xticks([])
         self.axes.set_yticks([])
 
@@ -311,10 +428,12 @@ class ChartCard(tk.Frame):
     ):
         for bar in bars:
             height = bar.get_height()
-            self.axes.annotate(
+
+            annotation = self.axes.annotate(
                 value_format.format(height),
                 xy=(
-                    bar.get_x() + bar.get_width() / 2,
+                    bar.get_x()
+                    + bar.get_width() / 2,
                     height
                 ),
                 xytext=(0, 4),
@@ -325,6 +444,10 @@ class ChartCard(tk.Frame):
                 fontsize=8
             )
 
+            annotation.set_fontproperties(
+                self.chart_font
+            )
+
     def _add_horizontal_bar_value_labels(
         self,
         bars,
@@ -332,11 +455,13 @@ class ChartCard(tk.Frame):
     ):
         for bar in bars:
             width = bar.get_width()
-            self.axes.annotate(
+
+            annotation = self.axes.annotate(
                 value_format.format(width),
                 xy=(
                     width,
-                    bar.get_y() + bar.get_height() / 2
+                    bar.get_y()
+                    + bar.get_height() / 2
                 ),
                 xytext=(4, 0),
                 textcoords="offset points",
@@ -346,8 +471,15 @@ class ChartCard(tk.Frame):
                 fontsize=8
             )
 
+            annotation.set_fontproperties(
+                self.chart_font
+            )
+
     def _finish_draw(self):
+        self._apply_text_font()
+
         self.figure.tight_layout()
+
         self.canvas.draw_idle()
 
     def destroy(self):
