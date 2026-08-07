@@ -29,6 +29,7 @@ class ChartCard(tk.Frame):
         self.title = title
         self.description = description
         self.figure_height = figure_height
+
         self.canvas = None
         self.figure = None
         self.axes = None
@@ -42,7 +43,7 @@ class ChartCard(tk.Frame):
         """
         Matplotlib 차트에서 사용할 한글 폰트를 반환한다.
 
-        Windows 환경에서는 맑은 고딕을 우선 사용하고,
+        Windows에서는 맑은 고딕을 우선 사용하고,
         사용할 수 없는 경우 Matplotlib 기본 폰트를 사용한다.
         """
         preferred_fonts = [
@@ -120,7 +121,15 @@ class ChartCard(tk.Frame):
         self.figure = Figure(
             figsize=(6.4, self.figure_height),
             dpi=100,
-            facecolor=AppTheme.CARD_BACKGROUND
+            facecolor=AppTheme.CARD_BACKGROUND,
+            layout="constrained"
+        )
+
+        self.figure.set_constrained_layout_pads(
+            w_pad=0.12,
+            h_pad=0.10,
+            wspace=0.08,
+            hspace=0.08
         )
 
         self.axes = self.figure.add_subplot(111)
@@ -130,12 +139,31 @@ class ChartCard(tk.Frame):
             master=self.chart_container
         )
 
-        self.canvas.get_tk_widget().pack(
+        canvas_widget = self.canvas.get_tk_widget()
+        canvas_widget.pack(
             fill="both",
             expand=True
         )
 
+        canvas_widget.bind(
+            "<Configure>",
+            self._on_canvas_resize
+        )
+
         self._apply_axes_style()
+
+    def _on_canvas_resize(self, event):
+        """
+        Tkinter에서 차트 카드 크기가 변경되면
+        constrained layout을 기준으로 다시 렌더링한다.
+        """
+        if self.canvas is None:
+            return
+
+        if event.width <= 1 or event.height <= 1:
+            return
+
+        self.canvas.draw_idle()
 
     def _apply_axes_style(self):
         self.axes.set_facecolor(
@@ -145,13 +173,15 @@ class ChartCard(tk.Frame):
         self.axes.tick_params(
             axis="x",
             colors=AppTheme.TEXT_SECONDARY,
-            labelsize=9
+            labelsize=9,
+            pad=6
         )
 
         self.axes.tick_params(
             axis="y",
             colors=AppTheme.TEXT_SECONDARY,
-            labelsize=9
+            labelsize=9,
+            pad=6
         )
 
         for spine in self.axes.spines.values():
@@ -229,7 +259,8 @@ class ChartCard(tk.Frame):
                 y_label,
                 color=AppTheme.TEXT_SECONDARY,
                 fontsize=9,
-                fontproperties=self.chart_font
+                fontproperties=self.chart_font,
+                labelpad=8
             )
 
         if rotate_labels:
@@ -275,7 +306,8 @@ class ChartCard(tk.Frame):
                 x_label,
                 color=AppTheme.TEXT_SECONDARY,
                 fontsize=9,
-                fontproperties=self.chart_font
+                fontproperties=self.chart_font,
+                labelpad=8
             )
 
         self.axes.invert_yaxis()
@@ -320,7 +352,8 @@ class ChartCard(tk.Frame):
                 y_label,
                 color=AppTheme.TEXT_SECONDARY,
                 fontsize=9,
-                fontproperties=self.chart_font
+                fontproperties=self.chart_font,
+                labelpad=8
             )
 
         self._finish_draw()
@@ -477,9 +510,6 @@ class ChartCard(tk.Frame):
 
     def _finish_draw(self):
         self._apply_text_font()
-
-        self.figure.tight_layout()
-
         self.canvas.draw_idle()
 
     def destroy(self):
