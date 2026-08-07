@@ -13,6 +13,9 @@ build/
 dist/
 *.egg-info/
 
+# Release
+release/
+
 # VSCode
 .vscode/
 
@@ -32,5 +35,5 @@ dist/
 # Windows
 Thumbs.db
 
-# excel
+# Excel
 *.xlsx
