@@ -2,20 +2,53 @@
 
 from pathlib import Path
 
+from PyInstaller.utils.hooks import collect_all
+
 
 PROJECT_ROOT = Path(SPEC).resolve().parent
-ICON_PATH = PROJECT_ROOT / "assets" / "LottoAnalyzer.ico"
-VERSION_FILE = PROJECT_ROOT / "version_info.txt"
+
+ICON_PATH = (
+    PROJECT_ROOT
+    / "assets"
+    / "LottoAnalyzer.ico"
+)
+
+VERSION_FILE = (
+    PROJECT_ROOT
+    / "version_info.txt"
+)
+
+
+pillow_datas, pillow_binaries, pillow_hiddenimports = collect_all(
+    "PIL"
+)
+
+reportlab_datas, reportlab_binaries, reportlab_hiddenimports = collect_all(
+    "reportlab"
+)
 
 
 a = Analysis(
     [str(PROJECT_ROOT / "main.py")],
-    pathex=[str(PROJECT_ROOT)],
-    binaries=[],
-    datas=[
-        (str(ICON_PATH), "assets"),
+    pathex=[
+        str(PROJECT_ROOT),
     ],
-    hiddenimports=[],
+    binaries=(
+        pillow_binaries
+        + reportlab_binaries
+    ),
+    datas=[
+        (
+            str(ICON_PATH),
+            "assets",
+        ),
+    ]
+    + pillow_datas
+    + reportlab_datas,
+    hiddenimports=(
+        pillow_hiddenimports
+        + reportlab_hiddenimports
+    ),
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
@@ -24,7 +57,11 @@ a = Analysis(
     optimize=0,
 )
 
-pyz = PYZ(a.pure)
+
+pyz = PYZ(
+    a.pure
+)
+
 
 exe = EXE(
     pyz,
