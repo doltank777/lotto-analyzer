@@ -27,6 +27,10 @@ reportlab_datas, reportlab_binaries, reportlab_hiddenimports = collect_all(
     "reportlab"
 )
 
+matplotlib_datas, matplotlib_binaries, matplotlib_hiddenimports = collect_all(
+    "matplotlib"
+)
+
 
 a = Analysis(
     [str(PROJECT_ROOT / "main.py")],
@@ -36,6 +40,7 @@ a = Analysis(
     binaries=(
         pillow_binaries
         + reportlab_binaries
+        + matplotlib_binaries
     ),
     datas=[
         (
@@ -44,10 +49,12 @@ a = Analysis(
         ),
     ]
     + pillow_datas
-    + reportlab_datas,
+    + reportlab_datas
+    + matplotlib_datas,
     hiddenimports=(
         pillow_hiddenimports
         + reportlab_hiddenimports
+        + matplotlib_hiddenimports
     ),
     hookspath=[],
     hooksconfig={},
