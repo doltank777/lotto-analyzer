@@ -2,7 +2,7 @@ class AppTheme:
     """Lotto Analyzer 모던 라이트 UI 디자인 시스템."""
 
     APP_NAME = "Lotto Analyzer"
-    VERSION = "1.1.0"
+    VERSION = "1.2.0"
 
     WINDOW_WIDTH = 1180
     WINDOW_HEIGHT = 800
@@ -67,12 +67,16 @@ class AppTheme:
     def get_lotto_ball_color(cls, number):
         if 1 <= number <= 10:
             return cls.BALL_YELLOW
+
         if 11 <= number <= 20:
             return cls.BALL_BLUE
+
         if 21 <= number <= 30:
             return cls.BALL_RED
+
         if 31 <= number <= 40:
             return cls.BALL_GRAY
+
         return cls.BALL_GREEN
 
     @classmethod
