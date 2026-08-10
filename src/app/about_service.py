@@ -22,8 +22,8 @@ class AboutService:
             "latest_draw_no": database_summary["latest_draw_no"],
             "database_path": str(database_path),
             "database_exists": database_path.exists(),
-            "repository": "GitHub Private Repository",
-            "license": "별도 라이선스 미지정",
+            "repository": "GitHub Public Repository",
+            "license": "MIT License",
         }
 
     def _get_database_path(self):
@@ -46,12 +46,14 @@ class AboutService:
         try:
             connection = sqlite3.connect(database_path)
             cursor = connection.cursor()
+
             cursor.execute(
                 """
                 SELECT COUNT(*), MAX(draw_no)
                 FROM lotto_winning_numbers
                 """
             )
+
             row = cursor.fetchone()
 
             return {
@@ -62,11 +64,13 @@ class AboutService:
                     else None
                 ),
             }
+
         except sqlite3.Error:
             return {
                 "stored_draw_count": 0,
                 "latest_draw_no": None,
             }
+
         finally:
             if connection is not None:
                 connection.close()
