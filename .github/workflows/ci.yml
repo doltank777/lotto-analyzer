@@ -1,5 +1,9 @@
 name: Lotto Analyzer CI
 
+env:
+  PYTHONUTF8: "1"
+  PYTHONIOENCODING: "utf-8"
+
 on:
   push:
     branches:
@@ -16,10 +20,10 @@ jobs:
 
     steps:
       - name: 저장소 Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v5
 
       - name: Python 3.12 설정
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -67,10 +71,10 @@ jobs:
 
     steps:
       - name: 저장소 Checkout
-        uses: actions/checkout@v7
+        uses: actions/checkout@v5
 
       - name: Python 3.12 설정
-        uses: actions/setup-python@v7
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
           cache: "pip"
@@ -129,7 +133,7 @@ jobs:
           Get-ChildItem $releasePath -Recurse
 
       - name: Release 패키지 Artifact 업로드
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@v4
         with:
           name: Lotto-Analyzer-1.3.0-Windows
           path: release/Lotto Analyzer 1.3.0/
