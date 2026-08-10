@@ -65,9 +65,9 @@ def init_db():
 
 def get_latest_draw_no():
     """
-    현재 DB에 저장된 가장 최신 회차를 반환한다.
+    현재 DB에 저장된 가장 최신 회차 번호를 반환한다.
 
-    저장된 데이터가 없는 경우 0을 반환한다.
+    데이터가 없는 경우 0을 반환한다.
     """
 
     conn = get_connection()
@@ -95,7 +95,7 @@ def get_latest_draw_no():
 
 def draw_exists(draw_no):
     """
-    특정 회차가 DB에 이미 저장되어 있는지 확인한다.
+    특정 회차가 DB에 이미 존재하는지 확인한다.
     """
 
     conn = get_connection()
@@ -119,117 +119,61 @@ def draw_exists(draw_no):
         conn.close()
 
 
-def get_existing_draw_nos(draw_nos):
+def insert_lotto_draw(
+    draw_no,
+    numbers,
+    bonus_number,
+):
     """
-    전달받은 회차 번호 중 DB에 이미 존재하는 회차 번호를 반환한다.
+    신규 당첨번호 1개 회차를 DB에 저장한다.
+
+    기존 회차가 존재하면 데이터를 덮어쓰지 않고
+    False를 반환한다.
+
+    저장 성공 시 True를 반환한다.
+
+    저장 도중 오류가 발생하면 Rollback한다.
     """
-
-    draw_nos = list(draw_nos)
-
-    if not draw_nos:
-        return set()
-
-    placeholders = ",".join("?" for _ in draw_nos)
 
     conn = get_connection()
-
-    try:
-        cursor = conn.cursor()
-
-        cursor.execute(
-            f"""
-            SELECT draw_no
-            FROM lotto_winning_numbers
-            WHERE draw_no IN ({placeholders})
-            """,
-            tuple(draw_nos),
-        )
-
-        return {
-            int(row[0])
-            for row in cursor.fetchall()
-        }
-
-    finally:
-        conn.close()
-
-
-def save_new_lotto_draws(draws):
-    """
-    검증이 완료된 신규 당첨번호 데이터를 저장한다.
-
-    기존에 저장된 회차는 수정하지 않고 건너뛴다.
-
-    전체 저장 작업은 하나의 Transaction으로 처리한다.
-    저장 도중 오류가 발생하면 전체 작업을 Rollback한다.
-
-    Parameters
-    ----------
-    draws : iterable
-        {
-            "draw_no": 1232,
-            "numbers": [1, 2, 3, 4, 5, 6],
-            "bonus_number": 7
-        }
-
-    Returns
-    -------
-    list[int]
-        실제 신규 저장된 회차 번호 목록
-    """
-
-    draws = list(draws)
-
-    if not draws:
-        return []
-
-    conn = get_connection()
-
-    inserted_draw_nos = []
 
     try:
         cursor = conn.cursor()
 
         cursor.execute("BEGIN")
 
-        for draw in draws:
-            draw_no = draw["draw_no"]
-            numbers = draw["numbers"]
-            bonus_number = draw["bonus_number"]
-
-            cursor.execute(
-                """
-                INSERT INTO lotto_winning_numbers (
-                    draw_no,
-                    number1,
-                    number2,
-                    number3,
-                    number4,
-                    number5,
-                    number6,
-                    bonus_number
-                )
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                ON CONFLICT(draw_no) DO NOTHING
-                """,
-                (
-                    draw_no,
-                    numbers[0],
-                    numbers[1],
-                    numbers[2],
-                    numbers[3],
-                    numbers[4],
-                    numbers[5],
-                    bonus_number,
-                ),
+        cursor.execute(
+            """
+            INSERT INTO lotto_winning_numbers (
+                draw_no,
+                number1,
+                number2,
+                number3,
+                number4,
+                number5,
+                number6,
+                bonus_number
             )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(draw_no) DO NOTHING
+            """,
+            (
+                draw_no,
+                numbers[0],
+                numbers[1],
+                numbers[2],
+                numbers[3],
+                numbers[4],
+                numbers[5],
+                bonus_number,
+            ),
+        )
 
-            if cursor.rowcount > 0:
-                inserted_draw_nos.append(draw_no)
+        inserted = cursor.rowcount > 0
 
         conn.commit()
 
-        return inserted_draw_nos
+        return inserted
 
     except Exception:
         conn.rollback()
@@ -241,7 +185,7 @@ def save_new_lotto_draws(draws):
 
 def reset_database():
     """
-    lotto_winning_numbers 테이블을 삭제한 후 다시 생성한다.
+    lotto_winning_numbers 테이블을 삭제한 뒤 다시 생성한다.
     """
 
     DB_DIR.mkdir(
