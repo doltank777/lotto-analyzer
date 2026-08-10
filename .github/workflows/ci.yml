@@ -16,10 +16,10 @@ jobs:
 
     steps:
       - name: 저장소 Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: Python 3.12 설정
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@v7
         with:
           python-version: "3.12"
           cache: "pip"
@@ -58,3 +58,79 @@ jobs:
 
       - name: CI 완료
         run: echo "Lotto Analyzer CI 검증 성공"
+
+
+  build:
+    name: Windows EXE 빌드
+    runs-on: windows-latest
+    needs: test
+
+    steps:
+      - name: 저장소 Checkout
+        uses: actions/checkout@v7
+
+      - name: Python 3.12 설정
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Python 버전 확인
+        run: python --version
+
+      - name: pip 업그레이드
+        run: python -m pip install --upgrade pip
+
+      - name: 의존성 설치
+        run: pip install -r requirements.txt
+
+      - name: 빌드용 SQLite DB 생성
+        run: |
+          python -c "from src.db.database import init_db; init_db(); print('Build database initialized')"
+
+      - name: 빌드용 DB 확인
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "database/lotto.db")) {
+              Write-Error "database/lotto.db 생성 실패"
+              exit 1
+          }
+
+          Write-Host "빌드용 database/lotto.db 생성 확인 완료"
+
+      - name: PyInstaller 배포 빌드
+        run: python build_release.py
+
+      - name: EXE 생성 확인
+        shell: pwsh
+        run: |
+          $exePath = "dist/Lotto Analyzer.exe"
+
+          if (-not (Test-Path $exePath)) {
+              Write-Error "Lotto Analyzer.exe 생성 실패"
+              exit 1
+          }
+
+          Write-Host "EXE 생성 확인 완료"
+          Write-Host $exePath
+
+      - name: Release 패키지 확인
+        shell: pwsh
+        run: |
+          $releasePath = "release/Lotto Analyzer 1.3.0"
+
+          if (-not (Test-Path $releasePath)) {
+              Write-Error "Release 패키지 생성 실패"
+              exit 1
+          }
+
+          Write-Host "Release 패키지 생성 확인 완료"
+
+          Get-ChildItem $releasePath -Recurse
+
+      - name: Release 패키지 Artifact 업로드
+        uses: actions/upload-artifact@v7
+        with:
+          name: Lotto-Analyzer-1.3.0-Windows
+          path: release/Lotto Analyzer 1.3.0/
+          if-no-files-found: error
