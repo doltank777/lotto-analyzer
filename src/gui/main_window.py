@@ -10,10 +10,12 @@ from src.app.draw_search_service import DrawSearchService
 from src.app.analysis_service import AnalysisService
 from src.app.backtest_service import BacktestService
 from src.app.about_service import AboutService
+from src.app.lotto_data_update_service import LottoDataUpdateService
 from src.gui.theme import AppTheme
 from src.gui.resources import get_resource_path
 from src.gui.views import RecommendationSettingsView
 from src.gui.views.about_view import AboutView
+from src.gui.views.lotto_data_update_view import LottoDataUpdateView
 from src.gui.components import (
     AppCard,
     ChartCard,
@@ -43,6 +45,7 @@ class MainWindow:
         self.analysis_service = AnalysisService()
         self.backtest_service = BacktestService()
         self.about_service = AboutService()
+        self.lotto_data_update_service = LottoDataUpdateService()
 
         self.menu_buttons = {}
         self.views = {}
@@ -205,6 +208,7 @@ class MainWindow:
             ("analysis", "통계분석"),
             ("backtest", "백테스트"),
             ("draw_search", "회차조회"),
+            ("data_update", "당첨 데이터"),
             ("settings", "추천 설정"),
             ("log", "시스템로그"),
             ("about", "프로그램 정보"),
@@ -326,6 +330,7 @@ class MainWindow:
         self.create_analysis_view()
         self.create_backtest_view()
         self.create_draw_search_view()
+        self.create_lotto_data_update_view()
         self.create_recommendation_settings_view()
         self.create_log_view()
         self.create_about_view()
@@ -1914,6 +1919,17 @@ class MainWindow:
         self.draw_search_canvas.update_idletasks()
         self.draw_search_canvas.yview_moveto(0)
 
+    def create_lotto_data_update_view(self):
+        view = self.create_view_frame("data_update")
+        self.lotto_data_update_view = LottoDataUpdateView(
+            view,
+            lotto_data_update_service=self.lotto_data_update_service,
+            on_log=self.add_log,
+            on_status=self.set_status,
+        )
+        self.lotto_data_update_view.pack(fill="both", expand=True)
+
+
     def create_recommendation_settings_view(self):
         view = self.create_view_frame("settings")
         self.recommendation_settings_view = RecommendationSettingsView(
@@ -2075,10 +2091,14 @@ class MainWindow:
             "analysis": ("통계분석", "과거 당첨 데이터의 주요 통계와 패턴을 확인합니다."),
             "backtest": ("백테스트", "추천번호 생성 결과를 과거 회차 기준으로 검증합니다."),
             "draw_search": ("회차조회", "특정 회차의 당첨번호와 보너스번호를 조회합니다."),
+            "data_update": ("당첨 데이터", "새로운 회차의 당첨번호를 직접 등록하여 데이터를 갱신합니다."),
             "settings": ("추천 설정", "추천번호 생성에 사용하는 가중치와 조건을 관리합니다."),
             "log": ("시스템로그", "프로그램 실행 상태와 처리 내역을 확인합니다."),
             "about": ("프로그램 정보", "Lotto Analyzer의 버전과 실행환경 정보를 확인합니다."),
         }
+
+        if key == "data_update" and hasattr(self, "lotto_data_update_view"):
+            self.lotto_data_update_view.refresh_data_info()
 
         title, description = page_info[key]
         self.header_title.config(text=title)
