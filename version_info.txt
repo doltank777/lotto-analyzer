@@ -1,7 +1,7 @@
 VSVersionInfo(
   ffi=FixedFileInfo(
-    filevers=(1, 2, 0, 0),
-    prodvers=(1, 2, 0, 0),
+    filevers=(1, 3, 0, 0),
+    prodvers=(1, 3, 0, 0),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -17,12 +17,12 @@ VSVersionInfo(
           [
             StringStruct('CompanyName', 'Y.YB'),
             StringStruct('FileDescription', 'Lotto Analyzer'),
-            StringStruct('FileVersion', '1.2.0'),
+            StringStruct('FileVersion', '1.3.0'),
             StringStruct('InternalName', 'Lotto Analyzer'),
             StringStruct('LegalCopyright', 'Copyright (c) 2026 Y.YB'),
             StringStruct('OriginalFilename', 'Lotto Analyzer.exe'),
             StringStruct('ProductName', 'Lotto Analyzer'),
-            StringStruct('ProductVersion', '1.2.0')
+            StringStruct('ProductVersion', '1.3.0')
           ]
         )
       ]

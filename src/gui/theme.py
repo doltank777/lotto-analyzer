@@ -2,7 +2,7 @@ class AppTheme:
     """Lotto Analyzer 모던 라이트 UI 디자인 시스템."""
 
     APP_NAME = "Lotto Analyzer"
-    VERSION = "1.2.0"
+    VERSION = "1.3.0"
 
     WINDOW_WIDTH = 1180
     WINDOW_HEIGHT = 800
