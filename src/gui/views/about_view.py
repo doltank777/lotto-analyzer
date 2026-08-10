@@ -6,7 +6,12 @@ from src.gui.theme import AppTheme
 
 
 class AboutView(tk.Frame):
-    """Lotto Analyzer 프로그램 및 실행환경 정보를 표시하는 화면."""
+    """
+    Lotto Analyzer 프로그램 및 실행환경 정보를 표시하는 화면.
+
+    화면 높이가 부족한 경우 전체 내용을
+    세로 스크롤하여 확인할 수 있다.
+    """
 
     def __init__(
         self,
@@ -37,8 +42,71 @@ class AboutView(tk.Frame):
         self.create_widgets()
 
     def create_widgets(self):
-        body = tk.Frame(
+        """
+        프로그램 정보 화면 전체를
+        Canvas + Scrollbar 구조로 생성한다.
+        """
+
+        self.scroll_container = tk.Frame(
             self,
+            bg=AppTheme.CONTENT_BACKGROUND,
+        )
+        self.scroll_container.pack(
+            fill="both",
+            expand=True,
+        )
+
+        self.scroll_canvas = tk.Canvas(
+            self.scroll_container,
+            bg=AppTheme.CONTENT_BACKGROUND,
+            highlightthickness=0,
+            borderwidth=0,
+        )
+        self.scroll_canvas.pack(
+            side="left",
+            fill="both",
+            expand=True,
+        )
+
+        self.scrollbar = ttk.Scrollbar(
+            self.scroll_container,
+            orient="vertical",
+            command=self.scroll_canvas.yview,
+        )
+        self.scrollbar.pack(
+            side="right",
+            fill="y",
+        )
+
+        self.scroll_canvas.configure(
+            yscrollcommand=self.scrollbar.set,
+        )
+
+        self.scroll_content = tk.Frame(
+            self.scroll_canvas,
+            bg=AppTheme.CONTENT_BACKGROUND,
+        )
+
+        self.scroll_window = (
+            self.scroll_canvas.create_window(
+                (0, 0),
+                window=self.scroll_content,
+                anchor="nw",
+            )
+        )
+
+        self.scroll_content.bind(
+            "<Configure>",
+            self._on_scroll_content_configure,
+        )
+
+        self.scroll_canvas.bind(
+            "<Configure>",
+            self._on_scroll_canvas_configure,
+        )
+
+        body = tk.Frame(
+            self.scroll_content,
             bg=AppTheme.CONTENT_BACKGROUND,
         )
         body.pack(
@@ -53,7 +121,98 @@ class AboutView(tk.Frame):
         self._create_environment_cards(body)
         self._create_detail_card(body)
 
-    def _create_page_intro(self, parent):
+        self._bind_mousewheel_recursive(
+            self.scroll_content
+        )
+
+        self.scroll_canvas.update_idletasks()
+        self.scroll_canvas.yview_moveto(0)
+
+    def _on_scroll_content_configure(
+        self,
+        event=None,
+    ):
+        """
+        내부 콘텐츠 높이가 변경되면
+        Canvas 스크롤 영역을 다시 계산한다.
+        """
+
+        bbox = self.scroll_canvas.bbox("all")
+
+        if bbox is not None:
+            self.scroll_canvas.configure(
+                scrollregion=bbox,
+            )
+
+    def _on_scroll_canvas_configure(
+        self,
+        event,
+    ):
+        """
+        Canvas 크기가 변경될 때
+        내부 콘텐츠 너비를 Canvas 너비에 맞춘다.
+        """
+
+        self.scroll_canvas.itemconfigure(
+            self.scroll_window,
+            width=event.width,
+        )
+
+    def _bind_mousewheel_recursive(
+        self,
+        widget,
+    ):
+        """
+        프로그램 정보 화면 내부의 모든 Widget에서
+        마우스휠 스크롤을 사용할 수 있도록 한다.
+        """
+
+        widget.bind(
+            "<MouseWheel>",
+            self._on_mousewheel,
+            add="+",
+        )
+
+        for child in widget.winfo_children():
+            self._bind_mousewheel_recursive(
+                child
+            )
+
+    def _on_mousewheel(
+        self,
+        event,
+    ):
+        """
+        Windows 마우스휠 이벤트를 처리한다.
+        """
+
+        if event.delta == 0:
+            return
+
+        scroll_units = int(
+            -1 * (event.delta / 120)
+        )
+
+        self.scroll_canvas.yview_scroll(
+            scroll_units,
+            "units",
+        )
+
+    def handle_mousewheel(
+        self,
+        event,
+    ):
+        """
+        MainWindow 전역 마우스휠 처리가 필요한 경우
+        사용할 수 있는 외부 진입점.
+        """
+
+        self._on_mousewheel(event)
+
+    def _create_page_intro(
+        self,
+        parent,
+    ):
         intro = tk.Frame(
             parent,
             bg=AppTheme.CONTENT_BACKGROUND,
@@ -70,7 +229,9 @@ class AboutView(tk.Frame):
             fg=AppTheme.TEXT_PRIMARY,
             bg=AppTheme.CONTENT_BACKGROUND,
             anchor="w",
-        ).pack(fill="x")
+        ).pack(
+            fill="x"
+        )
 
         tk.Label(
             intro,
@@ -87,8 +248,13 @@ class AboutView(tk.Frame):
             pady=(5, 0),
         )
 
-    def _create_program_card(self, parent):
-        card = AppCard(parent)
+    def _create_program_card(
+        self,
+        parent,
+    ):
+        card = AppCard(
+            parent
+        )
         card.pack(
             fill="x",
             pady=(0, 14),
@@ -117,7 +283,9 @@ class AboutView(tk.Frame):
             width=4,
             height=2,
         )
-        logo.pack(side="left")
+        logo.pack(
+            side="left"
+        )
 
         description_area = tk.Frame(
             content,
@@ -141,7 +309,9 @@ class AboutView(tk.Frame):
             fg=AppTheme.TEXT_PRIMARY,
             bg=AppTheme.CARD_BACKGROUND,
             anchor="w",
-        ).pack(anchor="w")
+        ).pack(
+            anchor="w"
+        )
 
         tk.Label(
             description_area,
@@ -197,7 +367,10 @@ class AboutView(tk.Frame):
             pady=(0, 9),
         )
 
-    def _create_environment_cards(self, parent):
+    def _create_environment_cards(
+        self,
+        parent,
+    ):
         row = tk.Frame(
             parent,
             bg=AppTheme.CONTENT_BACKGROUND,
@@ -214,12 +387,13 @@ class AboutView(tk.Frame):
                 uniform="about_summary",
             )
 
-        latest_draw_no = self.information[
-            "latest_draw_no"
-        ]
-        stored_draw_count = self.information[
-            "stored_draw_count"
-        ]
+        latest_draw_no = (
+            self.information["latest_draw_no"]
+        )
+
+        stored_draw_count = (
+            self.information["stored_draw_count"]
+        )
 
         cards = [
             (
@@ -265,6 +439,7 @@ class AboutView(tk.Frame):
                 description=description,
                 accent_color=color,
             )
+
             card.grid(
                 row=0,
                 column=column,
@@ -275,14 +450,17 @@ class AboutView(tk.Frame):
                 ),
             )
 
-    def _create_detail_card(self, parent):
+    def _create_detail_card(
+        self,
+        parent,
+    ):
         card = AppCard(
             parent,
             title="상세 정보",
         )
         card.pack(
-            fill="both",
-            expand=True,
+            fill="x",
+            pady=(0, 20),
         )
 
         content = tk.Frame(
@@ -290,11 +468,11 @@ class AboutView(tk.Frame):
             bg=AppTheme.CARD_BACKGROUND,
         )
         content.pack(
-            fill="both",
-            expand=True,
+            fill="x",
             padx=18,
             pady=(0, 18),
         )
+
         content.grid_columnconfigure(
             1,
             weight=1,
@@ -365,6 +543,7 @@ class AboutView(tk.Frame):
                 pady=11,
                 width=18,
             )
+
             label_widget.grid(
                 row=row_index,
                 column=0,
@@ -383,6 +562,7 @@ class AboutView(tk.Frame):
                 pady=11,
                 wraplength=680,
             )
+
             value_widget.grid(
                 row=row_index,
                 column=1,
@@ -393,6 +573,7 @@ class AboutView(tk.Frame):
             content,
             bg=AppTheme.CARD_BACKGROUND,
         )
+
         footer.grid(
             row=len(details),
             column=0,
@@ -422,9 +603,18 @@ class AboutView(tk.Frame):
             text="정보 새로고침",
             style="Secondary.TButton",
             command=self.refresh_information,
-        ).pack(side="right")
+        ).pack(
+            side="right"
+        )
 
-    def refresh_information(self):
+    def refresh_information(
+        self,
+    ):
+        """
+        프로그램 정보를 다시 조회한 뒤
+        화면 전체를 재생성한다.
+        """
+
         self.information = (
             self.about_service.get_program_information()
         )
