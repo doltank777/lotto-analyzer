@@ -1,4 +1,4 @@
-Lotto Analyzer 1.3.0
+Lotto Analyzer 1.3.1
 ====================
 
 1. 프로그램 소개
@@ -40,7 +40,7 @@ Lotto Analyzer.exe를 실행합니다.
 
 4. 배포 폴더 구조
 ----------------
-Lotto Analyzer 1.3.0/
+Lotto Analyzer 1.3.1/
 ├── Lotto Analyzer.exe
 ├── database/
 │   └── lotto.db
@@ -257,7 +257,7 @@ config/recommendation_settings.json 파일을
 
 16. 버전
 --------
-Version 1.3.0
+Version 1.3.1
 
 
 17. 개발자

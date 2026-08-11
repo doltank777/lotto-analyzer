@@ -19,7 +19,7 @@ class RecommendationExportService:
         "green": "#3FA36C",
     }
 
-    def export_png(self, file_path, recommendations, version="1.3.0"):
+    def export_png(self, file_path, recommendations, version="1.3.1"):
         self._validate_recommendations(recommendations)
 
         path = Path(file_path)
@@ -151,7 +151,7 @@ class RecommendationExportService:
         image.save(path, "PNG")
         return str(path)
 
-    def export_pdf(self, file_path, recommendations, version="1.3.0"):
+    def export_pdf(self, file_path, recommendations, version="1.3.1"):
         self._validate_recommendations(recommendations)
 
         path = Path(file_path)
@@ -240,7 +240,7 @@ class RecommendationExportService:
 
         return str(path)
 
-    def export_txt(self, file_path, recommendations, version="1.3.0"):
+    def export_txt(self, file_path, recommendations, version="1.3.1"):
         self._validate_recommendations(recommendations)
 
         path = Path(file_path)

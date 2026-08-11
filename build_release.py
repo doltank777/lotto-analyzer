@@ -5,7 +5,7 @@ from pathlib import Path
 
 
 APP_NAME = "Lotto Analyzer"
-VERSION = "1.3.0"
+VERSION = "1.3.1"
 SPEC_FILE_NAME = "lotto_analyzer.spec"
 
 
