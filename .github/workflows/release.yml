@@ -36,30 +36,119 @@ jobs:
       - name: 의존성 설치
         run: pip install -r requirements.txt
 
-      - name: 태그와 프로그램 버전 일치 확인
+      - name: 버전 정보 일치 검증
         shell: pwsh
         run: |
-          $tagVersion = "${{ github.ref_name }}".TrimStart("v")
+          $tag = "${{ github.ref_name }}"
+          $tagVersion = $tag.TrimStart("v")
 
-          $content = Get-Content "build_release.py" -Raw
+          Write-Host "========================================="
+          Write-Host "Lotto Analyzer Release Version Check"
+          Write-Host "========================================="
+          Write-Host "Git Tag Version : $tagVersion"
+          Write-Host ""
 
-          if ($content -notmatch 'VERSION\s*=\s*"([^"]+)"') {
+          # ---------------------------------------
+          # build_release.py
+          # ---------------------------------------
+
+          $buildContent = Get-Content "build_release.py" -Raw
+
+          if ($buildContent -notmatch 'VERSION\s*=\s*"([^"]+)"') {
               Write-Error "build_release.py에서 VERSION 값을 찾을 수 없습니다."
               exit 1
           }
 
-          $appVersion = $matches[1]
+          $buildVersion = $matches[1]
 
-          Write-Host "Git Tag Version : $tagVersion"
-          Write-Host "App Version     : $appVersion"
+          Write-Host "build_release.py : $buildVersion"
 
-          if ($tagVersion -ne $appVersion) {
-              Write-Error "Git Tag 버전과 프로그램 버전이 일치하지 않습니다."
-              Write-Error "Tag: $tagVersion / App: $appVersion"
+          # ---------------------------------------
+          # src/gui/theme.py
+          # ---------------------------------------
+
+          $themeContent = Get-Content "src/gui/theme.py" -Raw
+
+          if ($themeContent -notmatch 'VERSION\s*=\s*"([^"]+)"') {
+              Write-Error "src/gui/theme.py에서 VERSION 값을 찾을 수 없습니다."
               exit 1
           }
 
-          Write-Host "버전 일치 확인 완료"
+          $themeVersion = $matches[1]
+
+          Write-Host "theme.py         : $themeVersion"
+
+          # ---------------------------------------
+          # version_info.txt
+          # ---------------------------------------
+
+          $versionInfoContent = Get-Content "version_info.txt" -Raw
+
+          if ($versionInfoContent -notmatch "FileVersion['""]?\s*[,=]\s*['""]([^'""]+)") {
+
+              if ($versionInfoContent -notmatch "FileVersion.*?(\d+\.\d+\.\d+)") {
+                  Write-Error "version_info.txt에서 FileVersion 값을 찾을 수 없습니다."
+                  exit 1
+              }
+          }
+
+          $versionInfoVersion = $matches[1]
+
+          Write-Host "version_info.txt : $versionInfoVersion"
+
+          # ---------------------------------------
+          # README.txt
+          # ---------------------------------------
+
+          $readmeContent = Get-Content "README.txt" -Raw
+
+          $escapedVersion = [regex]::Escape($tagVersion)
+
+          if ($readmeContent -notmatch "Version\s+$escapedVersion") {
+              Write-Error "README.txt에서 Version $tagVersion 정보를 찾을 수 없습니다."
+              exit 1
+          }
+
+          $readmeVersion = $tagVersion
+
+          Write-Host "README.txt       : $readmeVersion"
+
+          Write-Host ""
+          Write-Host "========================================="
+          Write-Host "Version Comparison"
+          Write-Host "========================================="
+
+          $versionMismatch = $false
+
+          if ($tagVersion -ne $buildVersion) {
+              Write-Error "build_release.py VERSION 불일치"
+              $versionMismatch = $true
+          }
+
+          if ($tagVersion -ne $themeVersion) {
+              Write-Error "theme.py VERSION 불일치"
+              $versionMismatch = $true
+          }
+
+          if ($tagVersion -ne $versionInfoVersion) {
+              Write-Error "version_info.txt FileVersion 불일치"
+              $versionMismatch = $true
+          }
+
+          if ($tagVersion -ne $readmeVersion) {
+              Write-Error "README.txt VERSION 불일치"
+              $versionMismatch = $true
+          }
+
+          if ($versionMismatch) {
+              Write-Host ""
+              Write-Error "Release 버전 정보가 서로 일치하지 않습니다."
+              exit 1
+          }
+
+          Write-Host ""
+          Write-Host "모든 버전 정보가 일치합니다."
+          Write-Host "Release Version: $tagVersion"
 
       - name: Release용 SQLite DB 생성
         run: |
@@ -82,21 +171,34 @@ jobs:
         shell: pwsh
         run: |
           $version = "${{ github.ref_name }}".TrimStart("v")
+
           $releasePath = "release/Lotto Analyzer $version"
+          $exePath = "$releasePath/Lotto Analyzer.exe"
+          $dbPath = "$releasePath/database/lotto.db"
+          $settingsPath = "$releasePath/config/recommendation_settings.json"
+          $readmePath = "$releasePath/README.txt"
+          $licensePath = "$releasePath/LICENSE.txt"
 
-          if (-not (Test-Path $releasePath)) {
-              Write-Error "Release 패키지를 찾을 수 없습니다: $releasePath"
-              exit 1
+          $requiredFiles = @(
+              $exePath,
+              $dbPath,
+              $settingsPath,
+              $readmePath,
+              $licensePath
+          )
+
+          foreach ($file in $requiredFiles) {
+
+              if (-not (Test-Path $file)) {
+                  Write-Error "Release 필수 파일을 찾을 수 없습니다: $file"
+                  exit 1
+              }
+
+              Write-Host "확인: $file"
           }
 
-          if (-not (Test-Path "$releasePath/Lotto Analyzer.exe")) {
-              Write-Error "Lotto Analyzer.exe를 찾을 수 없습니다."
-              exit 1
-          }
-
-          Write-Host "Release 패키지 확인 완료"
-
-          Get-ChildItem $releasePath -Recurse
+          Write-Host ""
+          Write-Host "Release 패키지 검증 완료"
 
       - name: ZIP 패키지 생성
         shell: pwsh
@@ -120,7 +222,11 @@ jobs:
               exit 1
           }
 
-          Write-Host "ZIP 생성 완료: $zipPath"
+          $zipInfo = Get-Item $zipPath
+
+          Write-Host "ZIP 생성 완료"
+          Write-Host "파일: $($zipInfo.Name)"
+          Write-Host "크기: $($zipInfo.Length) bytes"
 
       - name: GitHub Release 생성
         shell: pwsh
@@ -129,6 +235,7 @@ jobs:
         run: |
           $tag = "${{ github.ref_name }}"
           $version = $tag.TrimStart("v")
+
           $zipPath = "release/Lotto Analyzer $version.zip"
 
           gh release create `
@@ -137,3 +244,7 @@ jobs:
             --title "Lotto Analyzer $version" `
             --generate-notes `
             --verify-tag
+
+          Write-Host ""
+          Write-Host "GitHub Release 생성 완료"
+          Write-Host "Version: $version"
